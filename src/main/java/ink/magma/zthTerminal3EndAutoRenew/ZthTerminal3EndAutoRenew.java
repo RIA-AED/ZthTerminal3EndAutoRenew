@@ -14,11 +14,11 @@ public final class ZthTerminal3EndAutoRenew extends JavaPlugin {
 
         // 初始化配置管理器
         configManager = new ConfigManager(this);
-        // 启动末地刷新调度器
-        endResetScheduler = new EndResetScheduler(this, configManager);
-        // 注册 BossBar 管理器监听器
-        bossBarManager = new BossBarManager(this, configManager);
-        getServer().getPluginManager().registerEvents(bossBarManager, this); // Register BossBarManager events
+        // 初始化 BossBar 管理器
+        bossBarManager = new BossBarManager(this);
+        // 启动末地刷新调度器 (现在需要 BossBarManager)
+        endResetScheduler = new EndResetScheduler(this, configManager, bossBarManager);
+        // EndResetScheduler 内部会注册自己为监听器
 
         // 注册龙蛋监听器
         DragonEggListener dragonEggListener = new DragonEggListener(this, configManager, bossBarManager); // Pass BossBarManager

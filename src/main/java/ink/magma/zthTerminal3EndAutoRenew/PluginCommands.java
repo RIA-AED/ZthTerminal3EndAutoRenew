@@ -78,8 +78,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
         }
 
         configManager.loadAndPruneRefreshTimes();
-        endResetScheduler.scheduleNextReset(); // 使用 scheduleNextReset 确保任务正确更新
-        plugin.getBossBarManager().updateNextRefresh();
+        endResetScheduler.reloadSchedule(); // 调用 EndResetScheduler 的重载方法
 
         sender.sendMessage(Component.text("ZthTerminal3EndAutoRenew 插件配置已重载。", NamedTextColor.GREEN));
         plugin.getLogger().info("Configuration reloaded by " + sender.getName());
@@ -123,8 +122,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
 
             if (configManager.addRefreshTime(timeToAdd)) {
                 sender.sendMessage(Component.text("已成功添加刷新时间: " + dateTimeStr, NamedTextColor.GREEN));
-                endResetScheduler.scheduleNextReset();
-                plugin.getBossBarManager().updateNextRefresh();
+                endResetScheduler.reloadSchedule(); // 调用 EndResetScheduler 的重载方法
             } else {
                 sender.sendMessage(Component.text("刷新时间 " + dateTimeStr + " 已存在。", NamedTextColor.YELLOW));
             }
@@ -143,8 +141,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
             LocalDateTime timeToRemove = LocalDateTime.parse(dateTimeStr, formatter);
             if (configManager.removeRefreshTime(timeToRemove)) {
                 sender.sendMessage(Component.text("已成功移除刷新时间: " + dateTimeStr, NamedTextColor.GREEN));
-                endResetScheduler.scheduleNextReset();
-                plugin.getBossBarManager().updateNextRefresh();
+                endResetScheduler.reloadSchedule(); // 调用 EndResetScheduler 的重载方法
             } else {
                 sender.sendMessage(Component.text("未找到刷新时间: " + dateTimeStr, NamedTextColor.YELLOW));
             }
