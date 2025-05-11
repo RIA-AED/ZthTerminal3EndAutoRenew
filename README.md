@@ -64,14 +64,31 @@ flowchart TD
 
 ## 主要类与职责
 
-| 类/模块                 | 职责                                                         |
-|-------------------------|-------------------------------------------------------------|
-| Main（JavaPlugin）      | 插件入口，注册监听器、命令、加载/保存配置                   |
-| ConfigManager           | 负责读写 YAML 配置、热重载、变量替换                        |
-| EndResetScheduler       | 定时调度与刷新事件管理，确保刷新的准确与安全                |
-| BossBarManager          | 管理玩家 BossBar 显示与动态倒计时                           |
-| DragonEggListener       | 监听末影龙死亡、龙蛋生成/归属/掉落处理                      |
-| CommandHandler          | 处理 /zthautorenew reload, list, add, remove（管理刷新计划） |
+| 类/模块                        | 职责                                                                 |
+|-------------------------------|--------------------------------------------------------------------|
+| ZthTerminal3EndAutoRenew（JavaPlugin） | 插件主入口，注册监听器、命令、加载/保存配置                          |
+| ConfigManager                 | 负责读写 YAML 配置、热重载、变量替换                                 |
+| EndResetScheduler             | 定时调度与刷新事件管理，确保刷新的准确与安全                         |
+| BossBarManager                | 管理玩家 BossBar 显示与动态倒计时                                    |
+| DragonEggListener             | 监听末影龙死亡、龙蛋生成/归属/掉落处理                               |
+| PluginCommands                | 负责 /zthautorenew 相关命令注册与处理，支持刷新计划的管理与热重载      |
+
+---
+
+## 命令说明
+
+- 所有命令前缀均为 `/zthautorenew`，需相应权限。
+- 支持 Tab 补全与参数提示。
+
+| 命令格式                                      | 权限节点                              | 功能说明                   |
+|-----------------------------------------------|--------------------------------------|----------------------------|
+| /zthautorenew reload                          | zthterminal3endautorenew.reload      | 重载插件配置               |
+| /zthautorenew list                            | zthterminal3endautorenew.manage      | 列出所有已配置刷新时间     |
+| /zthautorenew add <yyyy-MM-dd HH:mm:ss>       | zthterminal3endautorenew.manage      | 添加一个新的刷新时间点     |
+| /zthautorenew remove <yyyy-MM-dd HH:mm:ss>    | zthterminal3endautorenew.manage      | 移除指定的刷新时间点       |
+
+- 示例：`/zthautorenew add 2025-12-31 20:00:00`
+- 时间参数需严格遵循 `yyyy-MM-dd HH:mm:ss` 格式，且必须为未来时间。
 
 ---
 
@@ -104,5 +121,11 @@ flowchart TD
 - 业务流程稳定后支持事件钩子及更多自定义需求扩展
 
 ---
+
+### 开发/结构说明
+
+- 主源码位于 `src/main/java/ink/magma/zthTerminal3EndAutoRenew/`，各核心类文件与职责如上表。
+- 插件主类为 `ZthTerminal3EndAutoRenew.java`，命令处理集中于 `PluginCommands.java`。
+- 配置文件位于 `src/main/resources/config.yml`，如需自定义请参考上文示例。
 
 本设计可直接用于代码开发阶段。如有补充请于此文档下备注。
