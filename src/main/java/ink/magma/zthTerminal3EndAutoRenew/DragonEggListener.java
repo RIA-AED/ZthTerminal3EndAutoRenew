@@ -169,7 +169,9 @@ public class DragonEggListener implements Listener {
                             }
                             // 可以在这里再发一个公告，说明龙蛋已重置
                             Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<green>龙蛋已成功重置！</green>"));
-                        });
+                        },
+                        null // Show to all online players
+                );
             }
         }
     }
