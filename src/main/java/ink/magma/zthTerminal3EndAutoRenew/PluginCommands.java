@@ -81,7 +81,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
         endResetScheduler.reloadSchedule(); // 调用 EndResetScheduler 的重载方法
 
         sender.sendMessage(Component.text("ZthTerminal3EndAutoRenew 插件配置已重载。", NamedTextColor.GREEN));
-        plugin.getLogger().info("Configuration reloaded by " + sender.getName());
+        plugin.getLogger().info("配置文件已重载，操作者: " + sender.getName());
         return true;
     }
 

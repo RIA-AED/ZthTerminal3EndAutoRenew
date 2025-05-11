@@ -26,6 +26,7 @@ public class ConfigManager {
     public String announceEggReset;
     public String eggResetBossBarTitle; // 新增 BossBar 标题配置
     public String endResetBroadcastMessage; // 末地重置时的广播消息
+    public boolean broadcastEndResetEnabled; // 是否启用末地重置广播
 
     public ConfigManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -70,6 +71,7 @@ public class ConfigManager {
         this.announceEggReset = config.getString("announce-egg-reset");
         this.eggResetBossBarTitle = config.getString("egg-reset-bossbar-title", "<!color:#FF69B4>龙蛋将在 <gold>{time}</gold> 秒后重置"); // 添加默认值
         this.endResetBroadcastMessage = config.getString("end-reset-broadcast-message", "<#FF00FF>[末地刷新] <#FFC0CB>末地已重置，新的冒险开始了！");
+        this.broadcastEndResetEnabled = config.getBoolean("broadcast-end-reset", true); // 新增配置项，默认为 true
     }
 
     public ZoneId getZoneId() {
@@ -139,5 +141,14 @@ public class ConfigManager {
             sb.append(minutes).append("分钟");
             return sb.toString();
         }
+    }
+
+    // 新增 Getter 方法
+    public boolean isBroadcastEndResetEnabled() {
+        return broadcastEndResetEnabled;
+    }
+
+    public String getEndResetBroadcastMessageText() {
+        return endResetBroadcastMessage;
     }
 }

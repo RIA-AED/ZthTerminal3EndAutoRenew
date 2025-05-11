@@ -165,7 +165,7 @@ public class DragonEggListener implements Listener {
                                 // 如果没有找到基岩（理论上不应该发生），则在默认位置生成
                                 world.getBlockAt(0, 65, 0).setType(Material.DRAGON_EGG);
                                 plugin.getLogger().warning(
-                                        "Can't find bedrock at (0,0) in The End. Resetting dragon egg to default location.");
+                                        "在末地的 (0,0) 处找不到基岩。正在将龙蛋重置到默认位置。");
                             }
                             // 可以在这里再发一个公告，说明龙蛋已重置
                             Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<green>龙蛋已成功重置！</green>"));

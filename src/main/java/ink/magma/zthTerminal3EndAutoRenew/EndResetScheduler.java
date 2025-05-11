@@ -36,6 +36,11 @@ public class EndResetScheduler implements Listener {
     private static final String END_WORLD_NAME = "world_the_end";
     private static final long SEVEN_DAYS_IN_SECONDS = 7 * 24 * 60 * 60;
 
+    // 新增常量
+    private static final DateTimeFormatter BACKUP_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+    private static final String BACKUP_FOLDER_SUFFIX = "_backup_";
+    private static final String KICK_MESSAGE_END_RESET_MM = "<red><bold>末地正在重置</bold>，请稍后重新加入。</red>"; // MiniMessage 格式
+
     public EndResetScheduler(JavaPlugin plugin, ConfigManager configManager, BossBarManager bossBarManager) {
         this.plugin = plugin;
         this.configManager = configManager;
@@ -85,7 +90,7 @@ public class EndResetScheduler implements Listener {
         // 重启任务以应用任何潜在的调度更改，并确保任务正在运行。
         stop();
         start();
-        plugin.getLogger().info("EndResetScheduler tasks reloaded.");
+        plugin.getLogger().info("末地重置调度器任务已重载。");
         // 强制立即更新所有末地玩家的 BossBar。
         Bukkit.getOnlinePlayers().forEach(this::updatePlayerEndBarStatus);
     }
@@ -100,7 +105,8 @@ public class EndResetScheduler implements Listener {
     }
 
     private void updatePlayerEndBarStatus(Player player) {
-        if (player == null || !player.isOnline()) return;
+        if (player == null || !player.isOnline())
+            return;
         List<LocalDateTime> futureRefreshTimes = configManager.getFutureRefreshTimes();
         LocalDateTime nextRefreshTime = futureRefreshTimes.isEmpty() ? null : futureRefreshTimes.get(0);
         updatePlayerEndBar(player, nextRefreshTime);
@@ -128,7 +134,8 @@ public class EndResetScheduler implements Listener {
                 // 根据偏好显示“刷新中”或隐藏。目前，如果时间已过较久则隐藏。
                 if (durationToNext.getSeconds() > -10) { // 在重置前后短暂显示“即将刷新”
                     String title = configManager.bossBarMessage.replace("{time}", "<bold><red>即将刷新</red></bold>");
-                    bossBarManager.showPlayerBossBar(player, END_RESET_BAR_ID, title, BarColor.RED, BarStyle.SOLID, 0.0);
+                    bossBarManager.showPlayerBossBar(player, END_RESET_BAR_ID, title, BarColor.RED, BarStyle.SOLID,
+                            0.0);
                 } else {
                     bossBarManager.hidePlayerBossBar(player, END_RESET_BAR_ID);
                 }
@@ -136,8 +143,10 @@ public class EndResetScheduler implements Listener {
                 String timeStr = configManager.formatDuration(durationToNext);
                 String title = configManager.bossBarMessage.replace("{time}", timeStr);
                 // 进度条从7天开始倒数，1.0表示剩余7天或更多，0.0表示时间已到
-                double progress = Math.max(0.0, Math.min(1.0, (double) durationToNext.getSeconds() / SEVEN_DAYS_IN_SECONDS));
-                bossBarManager.showPlayerBossBar(player, END_RESET_BAR_ID, title, BarColor.PURPLE, BarStyle.SEGMENTED_10, progress);
+                double progress = Math.max(0.0,
+                        Math.min(1.0, (double) durationToNext.getSeconds() / SEVEN_DAYS_IN_SECONDS));
+                bossBarManager.showPlayerBossBar(player, END_RESET_BAR_ID, title, BarColor.PURPLE,
+                        BarStyle.SEGMENTED_10, progress);
             } else {
                 // 超过7天或处于其他状态
                 bossBarManager.hidePlayerBossBar(player, END_RESET_BAR_ID);
@@ -174,7 +183,7 @@ public class EndResetScheduler implements Listener {
 
         if (!now.isBefore(nextResetTime)) {
             // 到达重置时间
-            plugin.getLogger().info("Scheduled end reset time reached. Resetting the End...");
+            plugin.getLogger().info("已到达计划的末地重置时间。正在重置末地...");
             resetEndWorld();
             // 加载并修剪刷新时间，这也将更新下一次检查的列表
             configManager.loadAndPruneRefreshTimes();
@@ -193,73 +202,120 @@ public class EndResetScheduler implements Listener {
     }
 
     private void resetEndWorld() {
+        plugin.getLogger().info("开始末地世界重置流程...");
         World endWorld = Bukkit.getWorld(END_WORLD_NAME);
-        File worldFolder;
-        Path worldPath;
-        Path backupPath;
+        Path worldFolderPathToArchive;
+        boolean wasWorldLoaded = endWorld != null;
 
-        if (endWorld != null) {
-            // 在卸载前将所有玩家踢出末地
-            for (Player player : endWorld.getPlayers()) {
-                player.kick(MiniMessage.miniMessage().deserialize("末地正在重置，请稍后重新加入。"));
-            }
+        if (wasWorldLoaded) {
+            plugin.getLogger().info("末地世界 '" + END_WORLD_NAME + "' 当前已加载。");
+            // 1. 踢出玩家
+            kickPlayersFromWorld(endWorld, MiniMessage.miniMessage().deserialize(KICK_MESSAGE_END_RESET_MM));
 
-            worldFolder = endWorld.getWorldFolder(); // 获取文件夹路径
-            worldPath = worldFolder.toPath();
+            // 2. 获取世界文件夹路径 (卸载前)
+            worldFolderPathToArchive = endWorld.getWorldFolder().toPath();
 
-            plugin.getLogger().info("Unloading End world: " + END_WORLD_NAME);
+            // 3. 卸载世界
+            plugin.getLogger().info("正在卸载末地世界: " + END_WORLD_NAME);
             if (!Bukkit.unloadWorld(endWorld, true)) { // true 表示保存区块
-                plugin.getLogger().severe("Failed to unload End world: " + END_WORLD_NAME + ". Reset might be incomplete.");
-                return; // 如果卸载失败则停止
-            } else {
-                plugin.getLogger().info("End world unloaded successfully.");
-                // 卸载成功后，归档文件夹
-                if (Files.exists(worldPath)) {
-                    String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
-                    String backupFolderName = END_WORLD_NAME + "_backup_" + timestamp;
-                    backupPath = Paths.get(worldFolder.getParent(), backupFolderName); // 备份到同级目录
-
-                    try {
-                        plugin.getLogger().info("Archiving End world folder from: " + worldPath + " to: " + backupPath);
-                        Files.move(worldPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
-                        plugin.getLogger().info("End world folder archived successfully to: " + backupPath);
-                    } catch (Exception e) {
-                        plugin.getLogger().severe("Failed to archive End world folder: " + worldPath + ". Error: " + e.getMessage());
-                        // 即使归档失败，也尝试继续，但这是一个严重问题
-                    }
-                } else {
-                    plugin.getLogger().warning("End world folder " + worldPath + " did not exist after unload. This is unexpected but proceeding.");
-                }
+                plugin.getLogger().severe("卸载末地世界失败: " + END_WORLD_NAME + "。重置过程已中止。世界未归档或重新创建。");
+                // 考虑是否需要通知管理员或采取其他恢复措施
+                return; // 关键步骤失败，中止重置
             }
+            plugin.getLogger().info("末地世界卸载成功。");
         } else {
-            plugin.getLogger().info("End world '" + END_WORLD_NAME + "' not found or already unloaded. Attempting to archive its folder if it exists.");
-            worldFolder = new File(Bukkit.getWorldContainer(), END_WORLD_NAME); // 构建预期的文件夹路径
-            worldPath = worldFolder.toPath();
+            plugin.getLogger().info("末地世界 '" + END_WORLD_NAME + "' 当前未加载。正在尝试定位其文件夹以进行归档。");
+            // 尝试定位未加载世界的文件夹
+            File worldContainer = Bukkit.getWorldContainer();
+            worldFolderPathToArchive = Paths.get(worldContainer.getAbsolutePath(), END_WORLD_NAME);
+        }
 
-            if (Files.exists(worldPath) && Files.isDirectory(worldPath)) {
-                String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
-                String backupFolderName = END_WORLD_NAME + "_backup_" + timestamp;
-                backupPath = Paths.get(worldFolder.getParentFile().getAbsolutePath(), backupFolderName); // 备份到同级目录
-
-                try {
-                    plugin.getLogger().info("Found existing folder for End world: " + worldPath + ". Attempting to archive to: " + backupPath);
-                    Files.move(worldPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
-                    plugin.getLogger().info("End world folder archived successfully to: " + backupPath);
-                } catch (Exception e) {
-                    plugin.getLogger().severe("Failed to archive End world folder: " + worldPath + ". Error: " + e.getMessage() + ". Creation of new world might fail or use old data.");
-                }
-            } else {
-                plugin.getLogger().info("No existing folder found for End world at: " + worldPath + ". No archiving needed before creation.");
+        // 4. 归档旧的世界文件夹 (无论之前是否加载)
+        // archiveWorldFolder 会检查路径是否存在
+        boolean archiveSuccess = archiveWorldFolder(worldFolderPathToArchive, END_WORLD_NAME);
+        if (archiveSuccess) {
+            plugin.getLogger().info("旧的末地世界文件夹已成功归档或未找到（这没问题）。");
+        } else {
+            // 归档失败的日志已在 archiveWorldFolder 中记录
+            plugin.getLogger().warning("旧的末地世界文件夹归档失败或已跳过。有关详细信息，请参阅先前的日志。正在继续创建新世界。");
+            // 如果是从已加载的世界卸载后归档失败，这可能更值得关注
+            if (wasWorldLoaded) {
+                plugin.getLogger().warning("严重：最近卸载的世界文件夹归档失败：" + worldFolderPathToArchive + "。旧数据可能未正确备份。");
             }
         }
 
-        plugin.getLogger().info("Attempting to create a new End world: " + END_WORLD_NAME);
-        World newEnd = Bukkit.createWorld(new org.bukkit.WorldCreator(END_WORLD_NAME).environment(World.Environment.THE_END));
+        // 5. 创建新的末地世界
+        createNewEndWorld();
+        plugin.getLogger().info("末地世界重置流程已完成。");
+    }
+
+    private void kickPlayersFromWorld(World world, net.kyori.adventure.text.Component kickMessage) {
+        List<Player> playersInWorld = world.getPlayers();
+        if (playersInWorld.isEmpty()) {
+            plugin.getLogger().info("在世界 '" + world.getName() + "' 中未找到需要踢出的玩家。");
+            return;
+        }
+
+        plugin.getLogger().info("正在从世界 '" + world.getName() + "' 踢出 " + playersInWorld.size() + " 名玩家...");
+        for (Player player : playersInWorld) {
+            player.kick(kickMessage); // Adventure API
+        }
+        plugin.getLogger().info("已从世界 '" + world.getName() + "' 踢出所有玩家。");
+    }
+
+    private boolean archiveWorldFolder(Path worldPath, String worldName) {
+        // 检查文件夹是否存在且确实是文件夹
+        if (!Files.isDirectory(worldPath)) { // Files.isDirectory 也隐式检查了 Files.exists
+            plugin.getLogger().info("世界文件夹 '" + worldPath + "' 不存在或不是一个目录。将不执行归档操作。");
+            return true; // 没有东西可归档，视为“成功”完成此步骤（因为目标是移除旧文件夹）
+        }
+
+        // 生成备份文件夹名称
+        // 假设 configManager.getZoneId() 存在并返回正确的时区ID
+        String timestamp = LocalDateTime.now(configManager.getZoneId()).format(BACKUP_TIMESTAMP_FORMAT);
+        String backupFolderName = worldName + BACKUP_FOLDER_SUFFIX + timestamp;
+
+        Path parentDir = worldPath.getParent();
+        if (parentDir == null) {
+            plugin.getLogger().severe("无法确定用于创建备份的 '" + worldPath + "' 的父目录。已跳过归档。");
+            return false; // 无法确定备份路径
+        }
+        Path backupPath = parentDir.resolve(backupFolderName);
+
+        plugin.getLogger().info("正在尝试将世界文件夹从 '" + worldPath + "' 归档到 '" + backupPath + "'...");
+        try {
+            Files.move(worldPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
+            plugin.getLogger().info("世界文件夹已成功归档到 '" + backupPath + "'。");
+            return true;
+        } catch (java.io.IOException e) { // 更具体的异常类型
+            plugin.getLogger().log(java.util.logging.Level.SEVERE,
+                    "归档世界文件夹 '" + worldPath + "' 到 '" + backupPath + "' 失败。错误: " + e.getMessage(), e);
+            return false;
+        }
+    }
+
+    private void createNewEndWorld() {
+        plugin.getLogger().info("正在尝试创建一个新的末地世界: '" + END_WORLD_NAME + "'...");
+        org.bukkit.WorldCreator creator = new org.bukkit.WorldCreator(END_WORLD_NAME)
+                .environment(World.Environment.THE_END);
+
+        World newEnd = Bukkit.createWorld(creator);
+
         if (newEnd != null) {
-            plugin.getLogger().info("New End world created successfully.");
-            Bukkit.broadcast(MiniMessage.miniMessage().deserialize(configManager.endResetBroadcastMessage));
+            plugin.getLogger().info("新的末地世界 '" + END_WORLD_NAME + "' 创建成功。");
+            // 广播消息
+            if (configManager.isBroadcastEndResetEnabled()) {
+                String broadcastMessage = configManager.getEndResetBroadcastMessageText();
+                if (broadcastMessage != null && !broadcastMessage.isEmpty()) {
+                    Bukkit.broadcast(MiniMessage.miniMessage().deserialize(broadcastMessage));
+                } else {
+                    plugin.getLogger().warning("末地重置广播消息已启用，但消息文本未配置或为空。");
+                }
+            } else {
+                plugin.getLogger().info("末地重置广播在配置中已禁用。正在跳过广播。");
+            }
         } else {
-            plugin.getLogger().severe("Failed to create new End world: " + END_WORLD_NAME);
+            plugin.getLogger().severe("创建新的末地世界失败: '" + END_WORLD_NAME + "'。这是一个严重问题。末地可能无法访问或已损坏。");
         }
     }
 }
