@@ -71,23 +71,23 @@ flowchart TD
 | EndResetScheduler             | 定时调度与刷新事件管理，确保刷新的准确与安全                         |
 | BossBarManager                | 管理玩家 BossBar 显示与动态倒计时                                    |
 | DragonEggListener             | 监听末影龙死亡、龙蛋生成/归属/掉落处理                               |
-| PluginCommands                | 负责 /zthautorenew 相关命令注册与处理，支持刷新计划的管理与热重载      |
+| PluginCommands                | 负责 /zth-end-renew 相关命令注册与处理，支持刷新计划的管理与热重载      |
 
 ---
 
 ## 命令说明
 
-- 所有命令前缀均为 `/zthautorenew`，需相应权限。
+- 所有命令前缀均为 `/zth-end-renew`，需相应权限。
 - 支持 Tab 补全与参数提示。
 
 | 命令格式                                      | 权限节点                              | 功能说明                   |
 |-----------------------------------------------|--------------------------------------|----------------------------|
-| /zthautorenew reload                          | zthterminal3endautorenew.reload      | 重载插件配置               |
-| /zthautorenew list                            | zthterminal3endautorenew.manage      | 列出所有已配置刷新时间     |
-| /zthautorenew add <yyyy-MM-dd HH:mm:ss>       | zthterminal3endautorenew.manage      | 添加一个新的刷新时间点     |
-| /zthautorenew remove <yyyy-MM-dd HH:mm:ss>    | zthterminal3endautorenew.manage      | 移除指定的刷新时间点       |
+| /zth-end-renew reload                          | zthterminal3endautorenew.reload      | 重载插件配置               |
+| /zth-end-renew list                            | zthterminal3endautorenew.manage      | 列出所有已配置刷新时间     |
+| /zth-end-renew add <yyyy-MM-dd HH:mm:ss>       | zthterminal3endautorenew.manage      | 添加一个新的刷新时间点     |
+| /zth-end-renew remove <yyyy-MM-dd HH:mm:ss>    | zthterminal3endautorenew.manage      | 移除指定的刷新时间点       |
 
-- 示例：`/zthautorenew add 2025-12-31 20:00:00`
+- 示例：`/zth-end-renew add 2025-12-31 20:00:00`
 - 时间参数需严格遵循 `yyyy-MM-dd HH:mm:ss` 格式，且必须为未来时间。
 
 ---
@@ -99,7 +99,7 @@ flowchart TD
 - 玩家进入末地，若距离下次刷新不足 7 天，BossBar 显示剩余倒计时
 - EntityDeathEvent/ItemSpawnEvent/PlayerInteractEvent 检测龙蛋归属与流向，自动修改 Lore、公告
 - 龙蛋掉入虚空时广播并自动复原龙蛋至主传送门
-- 支持命令（/zthautorenew reload, list, add, remove）灵活管理与查阅刷新计划、热重载配置
+- 支持命令（/zth-end-renew reload, list, add, remove）灵活管理与查阅刷新计划、热重载配置
 
 ---
 
