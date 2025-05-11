@@ -10,13 +10,10 @@ import org.bukkit.World;
 // BossBar related imports are no longer needed here directly for creation
 import org.bukkit.boss.BarColor; // Keep for passing as parameter
 import org.bukkit.boss.BarStyle; // Keep for passing as parameter
-import org.bukkit.entity.EnderDragon;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -37,31 +34,6 @@ public class DragonEggListener implements Listener {
         this.bossBarManager = bossBarManager; // Initialize BossBarManager
     }
 
-    @EventHandler
-    public void onDragonDeath(EntityDeathEvent event) {
-        Entity entity = event.getEntity();
-        if (entity instanceof EnderDragon && entity.getWorld().getEnvironment() == World.Environment.THE_END) {
-            // 末影龙死亡，等待龙蛋生成
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                World end = entity.getWorld();
-                // 检查末地是否已有龙蛋
-                boolean hasEgg = false;
-                for (Entity e : end.getEntities()) {
-                    if (e instanceof Item) {
-                        ItemStack stack = ((Item) e).getItemStack();
-                        if (stack.getType() == Material.DRAGON_EGG) {
-                            hasEgg = true;
-                            break;
-                        }
-                    }
-                }
-                if (!hasEgg) {
-                    // 主动在传送门上方生成龙蛋
-                    end.getBlockAt(0, 65, 0).setType(Material.DRAGON_EGG);
-                }
-            }, 60L); // 延迟3秒
-        }
-    }
 
     @EventHandler
     public void onPlayerPickup(EntityPickupItemEvent event) {
