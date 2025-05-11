@@ -1,8 +1,14 @@
 package ink.magma.zthTerminal3EndAutoRenew;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -188,28 +194,63 @@ public class EndResetScheduler implements Listener {
 
     private void resetEndWorld() {
         World endWorld = Bukkit.getWorld(END_WORLD_NAME);
+        File worldFolder;
+        Path worldPath;
+        Path backupPath;
+
         if (endWorld != null) {
             // 在卸载前将所有玩家踢出末地
             for (Player player : endWorld.getPlayers()) {
-                // 传送到主世界的出生点或配置的回退位置
-                World mainWorld = Bukkit.getWorlds().get(0); // 假设第一个世界是主世界
-                if (mainWorld != null) {
-                    player.teleport(mainWorld.getSpawnLocation());
-                    player.sendMessage(MiniMessage.miniMessage().deserialize("<gold>末地正在重置，您已被传送回主世界。</gold>"));
-                } else {
-                    player.kick(MiniMessage.miniMessage().deserialize("末地正在重置，请稍后重新加入。"));
-                }
+                player.kick(MiniMessage.miniMessage().deserialize("末地正在重置，请稍后重新加入。"));
             }
 
+            worldFolder = endWorld.getWorldFolder(); // 获取文件夹路径
+            worldPath = worldFolder.toPath();
+
             plugin.getLogger().info("Unloading End world: " + END_WORLD_NAME);
-            if (!Bukkit.unloadWorld(endWorld, false)) { // false 表示不保存区块
+            if (!Bukkit.unloadWorld(endWorld, true)) { // true 表示保存区块
                 plugin.getLogger().severe("Failed to unload End world: " + END_WORLD_NAME + ". Reset might be incomplete.");
                 return; // 如果卸载失败则停止
             } else {
                 plugin.getLogger().info("End world unloaded successfully.");
+                // 卸载成功后，归档文件夹
+                if (Files.exists(worldPath)) {
+                    String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+                    String backupFolderName = END_WORLD_NAME + "_backup_" + timestamp;
+                    backupPath = Paths.get(worldFolder.getParent(), backupFolderName); // 备份到同级目录
+
+                    try {
+                        plugin.getLogger().info("Archiving End world folder from: " + worldPath + " to: " + backupPath);
+                        Files.move(worldPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
+                        plugin.getLogger().info("End world folder archived successfully to: " + backupPath);
+                    } catch (Exception e) {
+                        plugin.getLogger().severe("Failed to archive End world folder: " + worldPath + ". Error: " + e.getMessage());
+                        // 即使归档失败，也尝试继续，但这是一个严重问题
+                    }
+                } else {
+                    plugin.getLogger().warning("End world folder " + worldPath + " did not exist after unload. This is unexpected but proceeding.");
+                }
             }
         } else {
-            plugin.getLogger().info("End world '" + END_WORLD_NAME + "' not found or already unloaded. Proceeding to create a new one.");
+            plugin.getLogger().info("End world '" + END_WORLD_NAME + "' not found or already unloaded. Attempting to archive its folder if it exists.");
+            worldFolder = new File(Bukkit.getWorldContainer(), END_WORLD_NAME); // 构建预期的文件夹路径
+            worldPath = worldFolder.toPath();
+
+            if (Files.exists(worldPath) && Files.isDirectory(worldPath)) {
+                String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+                String backupFolderName = END_WORLD_NAME + "_backup_" + timestamp;
+                backupPath = Paths.get(worldFolder.getParentFile().getAbsolutePath(), backupFolderName); // 备份到同级目录
+
+                try {
+                    plugin.getLogger().info("Found existing folder for End world: " + worldPath + ". Attempting to archive to: " + backupPath);
+                    Files.move(worldPath, backupPath, StandardCopyOption.REPLACE_EXISTING);
+                    plugin.getLogger().info("End world folder archived successfully to: " + backupPath);
+                } catch (Exception e) {
+                    plugin.getLogger().severe("Failed to archive End world folder: " + worldPath + ". Error: " + e.getMessage() + ". Creation of new world might fail or use old data.");
+                }
+            } else {
+                plugin.getLogger().info("No existing folder found for End world at: " + worldPath + ". No archiving needed before creation.");
+            }
         }
 
         plugin.getLogger().info("Attempting to create a new End world: " + END_WORLD_NAME);
