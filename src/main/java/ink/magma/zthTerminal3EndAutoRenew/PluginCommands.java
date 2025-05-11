@@ -25,7 +25,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
     private final ConfigManager configManager;
     private final EndResetScheduler endResetScheduler;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private final String baseCommand = "zthautorenew"; // 主命令名，将在 plugin.yml 中使用
+    private final String baseCommand = "zth-end-renew"; // 主命令名，将在 plugin.yml 中使用
 
     public PluginCommands(ZthTerminal3EndAutoRenew plugin) {
         this.plugin = plugin;

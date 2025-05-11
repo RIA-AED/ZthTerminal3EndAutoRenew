@@ -29,8 +29,8 @@ public final class ZthTerminal3EndAutoRenew extends JavaPlugin {
 
         // 注册新的统一命令处理器
         PluginCommands pluginCommands = new PluginCommands(this);
-        getCommand("zthautorenew").setExecutor(pluginCommands);
-        getCommand("zthautorenew").setTabCompleter(pluginCommands);
+        getCommand("zth-end-renew").setExecutor(pluginCommands);
+        getCommand("zth-end-renew").setTabCompleter(pluginCommands);
     }
 
     @Override

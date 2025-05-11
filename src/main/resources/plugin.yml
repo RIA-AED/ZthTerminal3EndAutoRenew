@@ -4,9 +4,9 @@ main: ink.magma.zthTerminal3EndAutoRenew.ZthTerminal3EndAutoRenew
 api-version: '1.20'
 authors: [ Magma ]
 commands:
-  zthautorenew:
+  zth-end-renew:
     description: "Manages the ZthTerminal3EndAutoRenew plugin, including reloads and reset schedule."
-    aliases: [zthrenew, ztrend]
+    aliases: [zthautorenew, zthrenew, ztrend]
     permission: zthterminal3endautorenew.use # A general use permission, specific sub-commands have their own.
     usage: |
       /<command> reload
