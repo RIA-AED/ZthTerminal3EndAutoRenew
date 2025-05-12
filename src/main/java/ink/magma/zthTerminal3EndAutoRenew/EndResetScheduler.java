@@ -97,7 +97,7 @@ public class EndResetScheduler implements Listener {
     }
 
     private void updateEndCountdownBars() {
-        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshTimes();
+        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshEntries();
         LocalDateTime nextRefreshTime = null;
         if (!futureRefreshEntries.isEmpty()) {
             nextRefreshTime = futureRefreshEntries.get(0).getTime();
@@ -117,7 +117,7 @@ public class EndResetScheduler implements Listener {
         if (player == null || !player.isOnline())
             return;
 
-        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshTimes();
+        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshEntries();
         LocalDateTime nextRefreshTime = null;
         if (!futureRefreshEntries.isEmpty()) {
             nextRefreshTime = futureRefreshEntries.get(0).getTime();
@@ -192,7 +192,7 @@ public class EndResetScheduler implements Listener {
     }
 
     private void checkAndResetEnd() {
-        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshTimes();
+        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshEntries();
         if (futureRefreshEntries.isEmpty()) {
             return; // 没有计划的未来重置
         }
@@ -340,8 +340,8 @@ public class EndResetScheduler implements Listener {
         if (newEnd != null) {
             plugin.getLogger().info("新的末地世界 '" + END_WORLD_NAME + "' 创建成功。");
             // 广播消息
-            if (configManager.isBroadcastEndResetEnabled()) {
-                String broadcastMessage = configManager.getEndResetBroadcastMessageText();
+            if (configManager.broadcastEndResetEnabled) {
+                String broadcastMessage = configManager.endResetBroadcastMessage;
                 if (broadcastMessage != null && !broadcastMessage.isEmpty()) {
                     Bukkit.broadcast(MiniMessage.miniMessage().deserialize(broadcastMessage));
                 } else {

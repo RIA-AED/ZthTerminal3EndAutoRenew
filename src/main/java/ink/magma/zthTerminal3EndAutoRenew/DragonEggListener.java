@@ -73,7 +73,7 @@ public class DragonEggListener implements Listener {
             currentEntry.getDragonEggOwner().setName(player.getName());
             currentEntry.getDragonEggOwner().setPickupTime(LocalDateTime.now(configManager.getZoneId()));
 
-            configManager.saveRefreshTimesToConfig(); // 保存更改到配置文件
+            configManager.saveRefreshEntriesToConfig(); // 保存更改到配置文件
 
             plugin.getLogger().info("玩家 " + player.getName() + " 拾取了龙蛋，已记录。刷新期: " + currentEntry.getTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 

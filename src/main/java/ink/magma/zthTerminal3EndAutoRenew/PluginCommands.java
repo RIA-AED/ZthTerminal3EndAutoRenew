@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Optional; // 新增导入
 import java.util.UUID; // 新增导入，用于玩家UUID
 import java.util.stream.Collectors;
-import java.util.Collections; // 新增导入
 import java.util.Comparator; // 新增导入
 
 import org.bukkit.Material; // 新增导入
@@ -106,7 +105,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        List<String> times = configManager.listRefreshTimes();
+        List<String> times = configManager.listRefreshEntries();
         if (times.isEmpty()) {
             sender.sendMessage(Component.text("当前没有配置末地刷新时间。", NamedTextColor.YELLOW));
         } else {
@@ -135,7 +134,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
                 return true;
             }
 
-            if (configManager.addRefreshTime(timeToAdd)) {
+            if (configManager.addRefreshEntry(timeToAdd)) {
                 sender.sendMessage(Component.text("已成功添加刷新时间: " + dateTimeStr, NamedTextColor.GREEN));
                 endResetScheduler.reloadSchedule(); // 调用 EndResetScheduler 的重载方法
             } else {
@@ -154,7 +153,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
         }
         try {
             LocalDateTime timeToRemove = LocalDateTime.parse(dateTimeStr, formatter);
-            if (configManager.removeRefreshTime(timeToRemove)) {
+            if (configManager.removeRefreshEntry(timeToRemove)) {
                 sender.sendMessage(Component.text("已成功移除刷新时间: " + dateTimeStr, NamedTextColor.GREEN));
                 endResetScheduler.reloadSchedule(); // 调用 EndResetScheduler 的重载方法
             } else {
@@ -369,7 +368,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
 
        // 4. 更新领取记录并保存配置
        currentEntry.getRewardClaimedPlayers().add(playerUuid.toString());
-       configManager.saveRefreshTimesToConfig();
+       configManager.saveRefreshEntriesToConfig();
 
        player.sendMessage(Component.text("末地远征奖励已发放！", NamedTextColor.GREEN));
        return true;
@@ -426,7 +425,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
                 }
 
                 entry.getRewardItems().add(itemInHand.clone()); // 添加克隆以防意外修改
-                configManager.saveRefreshTimesToConfig(); // 保存配置
+                configManager.saveRefreshEntriesToConfig(); // 保存配置
                 sender.sendMessage(Component.text("已将手中的物品添加到 " + timestampStr + " 的奖励列表。", NamedTextColor.GREEN));
                 break;
 
@@ -450,7 +449,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
                 }
 
                 ItemStack removedItem = rewardItemsRemove.remove(indexToRemove);
-                configManager.saveRefreshTimesToConfig(); // 保存配置
+                configManager.saveRefreshEntriesToConfig(); // 保存配置
                 // 修改反馈消息，不再使用 getItemDisplayName
                 sender.sendMessage(Component.text("已从 " + timestampStr + " 的奖励列表中移除物品: " + removedItem.getType() + " x" + removedItem.getAmount(), NamedTextColor.GREEN));
                 break;

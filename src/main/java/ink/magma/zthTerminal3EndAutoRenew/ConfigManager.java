@@ -180,7 +180,7 @@ public class ConfigManager {
     private final JavaPlugin plugin; // 插件实例
     private FileConfiguration config; // 插件配置文件对象
     private ZoneId zoneId; // 时区ID
-    private List<RefreshEntry> refreshTimes = new ArrayList<>(); // 末地刷新时间条目列表
+    private List<RefreshEntry> refreshEntries = new ArrayList<>(); // 末地刷新时间条目列表
 
     // 其他配置项
     public String bossBarMessage; // BossBar 显示的消息
@@ -242,11 +242,11 @@ public class ConfigManager {
 
         // 按刷新时间对所有条目进行升序排序
         parsedEntries.sort(Comparator.comparing(RefreshEntry::getTime));
-        this.refreshTimes = parsedEntries; // 更新内存中的刷新时间列表（包含所有记录）
+        this.refreshEntries = parsedEntries; // 更新内存中的刷新时间列表（包含所有记录）
 
         // 将内存中所有（包括过去和未来）的刷新条目列表转换回 Map 格式并保存到配置文件
         // 这确保了即便是过去的记录，如果其内容（如龙蛋得主）在程序运行中被更新，也会被持久化
-        List<Map<String, Object>> toSave = this.refreshTimes.stream()
+        List<Map<String, Object>> toSave = this.refreshEntries.stream()
                 .map(RefreshEntry::toMap) // 调用 RefreshEntry 的 toMap 方法进行转换
                 .collect(Collectors.toList());
         config.set("refresh-times", toSave); // 设置到配置对象
@@ -391,9 +391,9 @@ public class ConfigManager {
      *
      * @return 一个不可修改的、仅包含未来 {@link RefreshEntry} 的列表。
      */
-    public List<RefreshEntry> getFutureRefreshTimes() {
+    public List<RefreshEntry> getFutureRefreshEntries() {
         LocalDateTime now = LocalDateTime.now(zoneId);
-        return refreshTimes.stream()
+        return refreshEntries.stream()
                 .filter(entry -> entry.getTime().isAfter(now))
                 .toList();
     }
@@ -404,9 +404,9 @@ public class ConfigManager {
      *
      * @return 格式化后的未来刷新时间字符串列表 (yyyy-MM-dd HH:mm:ss)。
      */
-    public List<String> listRefreshTimes() {
+    public List<String> listRefreshEntries() {
         LocalDateTime now = LocalDateTime.now(zoneId); // 获取当前时间进行比较
-        return refreshTimes.stream()
+        return refreshEntries.stream()
                 // .filter(entry -> entry.getTime().isAfter(now)) // 不再只选择未来的时间
                 .map(entry -> {
                     String timeStr = DATE_TIME_FORMATTER.format(entry.getTime());
@@ -426,17 +426,17 @@ public class ConfigManager {
      * @param timeToAdd 要添加的 {@link LocalDateTime}。
      * @return 如果成功添加则返回 true，如果时间已存在则返回 false。
      */
-    public boolean addRefreshTime(LocalDateTime timeToAdd) {
+    public boolean addRefreshEntry(LocalDateTime timeToAdd) {
         // 检查是否已存在具有相同时间的条目
-        if (refreshTimes.stream().anyMatch(entry -> entry.getTime().equals(timeToAdd))) {
+        if (refreshEntries.stream().anyMatch(entry -> entry.getTime().equals(timeToAdd))) {
             plugin.getLogger().info("尝试添加已存在的刷新时间: " + DATE_TIME_FORMATTER.format(timeToAdd));
             return false; // 时间已存在
         }
         // 创建一个新的 RefreshEntry，龙蛋信息、奖励领取者列表和奖励物品列表为空
         RefreshEntry newEntry = new RefreshEntry(timeToAdd, new DragonEggOwner(), new ArrayList<>(), new ArrayList<>());
-        refreshTimes.add(newEntry);
-        refreshTimes.sort(Comparator.comparing(RefreshEntry::getTime)); // 按时间排序
-        saveRefreshTimesToConfig(); // 保存到配置文件
+        refreshEntries.add(newEntry);
+        refreshEntries.sort(Comparator.comparing(RefreshEntry::getTime)); // 按时间排序
+        saveRefreshEntriesToConfig(); // 保存到配置文件
         plugin.getLogger().info("成功添加新的刷新时间: " + DATE_TIME_FORMATTER.format(timeToAdd));
         return true;
     }
@@ -455,13 +455,13 @@ public class ConfigManager {
             return false;
         }
         // 检查是否已存在具有相同时间的条目
-        if (refreshTimes.stream().anyMatch(entry -> entry.getTime().equals(entryToAdd.getTime()))) {
+        if (refreshEntries.stream().anyMatch(entry -> entry.getTime().equals(entryToAdd.getTime()))) {
             plugin.getLogger().info("尝试添加已存在的刷新时间的条目: " + DATE_TIME_FORMATTER.format(entryToAdd.getTime()));
             return false; // 时间已存在
         }
-        refreshTimes.add(entryToAdd);
-        refreshTimes.sort(Comparator.comparing(RefreshEntry::getTime)); // 按时间排序
-        saveRefreshTimesToConfig(); // 保存到配置文件
+        refreshEntries.add(entryToAdd);
+        refreshEntries.sort(Comparator.comparing(RefreshEntry::getTime)); // 按时间排序
+        saveRefreshEntriesToConfig(); // 保存到配置文件
         plugin.getLogger().info("成功添加新的刷新条目: " + DATE_TIME_FORMATTER.format(entryToAdd.getTime()));
         return true;
     }
@@ -473,10 +473,10 @@ public class ConfigManager {
      * @param timeToRemove 要移除的 {@link LocalDateTime}。
      * @return 如果成功移除则返回 true，否则返回 false。
      */
-    public boolean removeRefreshTime(LocalDateTime timeToRemove) {
-        boolean removed = refreshTimes.removeIf(entry -> entry.getTime().equals(timeToRemove)); // 根据时间移除条目
+    public boolean removeRefreshEntry(LocalDateTime timeToRemove) {
+        boolean removed = refreshEntries.removeIf(entry -> entry.getTime().equals(timeToRemove)); // 根据时间移除条目
         if (removed) {
-            saveRefreshTimesToConfig(); // 如果有变动，则保存到配置文件
+            saveRefreshEntriesToConfig(); // 如果有变动，则保存到配置文件
             plugin.getLogger().info("成功移除刷新时间: " + DATE_TIME_FORMATTER.format(timeToRemove));
         } else {
             plugin.getLogger().info("尝试移除不存在的刷新时间: " + DATE_TIME_FORMATTER.format(timeToRemove));
@@ -488,8 +488,8 @@ public class ConfigManager {
      * 将当前的刷新时间列表保存回配置文件。
      * 此方法是私有的，由其他修改刷新时间列表的方法调用。
      */
-    public void saveRefreshTimesToConfig() { // -> 改为 public
-        List<Map<String, Object>> toSave = refreshTimes.stream()
+    public void saveRefreshEntriesToConfig() { // -> 改为 public
+        List<Map<String, Object>> toSave = refreshEntries.stream()
                 .map(RefreshEntry::toMap) // 将每个 RefreshEntry 转换为 Map
                 .collect(Collectors.toList());
         config.set("refresh-times", toSave); // 设置到配置对象
@@ -553,7 +553,7 @@ public class ConfigManager {
      * @return 包含 RefreshEntry 的 Optional，如果未找到则为空。
      */
     public Optional<RefreshEntry> getRefreshEntryByTime(LocalDateTime time) {
-        return refreshTimes.stream()
+        return refreshEntries.stream()
                 .filter(entry -> entry.getTime().equals(time))
                 .findFirst();
     }
@@ -564,7 +564,7 @@ public class ConfigManager {
      * @return 一个包含所有 RefreshEntry 的列表的不可修改副本。
      */
     public List<RefreshEntry> getAllRefreshEntries() {
-        return List.copyOf(refreshTimes); // 返回副本以防外部修改
+        return List.copyOf(refreshEntries); // 返回副本以防外部修改
     }
 
     /**
@@ -578,29 +578,8 @@ public class ConfigManager {
         LocalDateTime now = LocalDateTime.now(getZoneId());
         // entry.time <= now
         // 按 time 降序
-        return refreshTimes.stream()
+        return refreshEntries.stream()
                 .filter(entry -> !entry.getTime().isAfter(now))
                 .max(Comparator.comparing(RefreshEntry::getTime));
-    }
-
-
-    // --- 其他配置项的 Getter 方法 ---
-
-    /**
-     * 检查是否启用了末地重置完成的广播。
-     *
-     * @return 如果启用则返回 true，否则返回 false。
-     */
-    public boolean isBroadcastEndResetEnabled() {
-        return broadcastEndResetEnabled;
-    }
-
-    /**
-     * 获取末地重置完成时广播的消息文本。
-     *
-     * @return 广播消息文本。
-     */
-    public String getEndResetBroadcastMessageText() {
-        return endResetBroadcastMessage;
     }
 }
