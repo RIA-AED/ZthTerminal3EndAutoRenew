@@ -96,7 +96,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
         configManager.loadRefreshEntries(); // 修改: loadAndPruneRefreshTimes() -> loadRefreshEntries()
         endResetScheduler.reloadSchedule(); // 调用 EndResetScheduler 的重载方法
 
-        sender.sendMessage(Component.text("ZthTerminal3EndAutoRenew 插件配置已重载。", NamedTextColor.GREEN));
+        sender.sendMessage(Component.text("ZthTerminal3EndAutoRenew 插件配置已重载。", NamedTextColor.GRAY));
         plugin.getLogger().info("配置文件已重载，操作者: " + sender.getName());
         return true;
     }
@@ -109,11 +109,11 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
 
         List<String> times = configManager.listRefreshEntries();
         if (times.isEmpty()) {
-            sender.sendMessage(Component.text("当前没有配置末地刷新时间。", NamedTextColor.YELLOW));
+            sender.sendMessage(Component.text("当前没有配置末地刷新时间。", NamedTextColor.GRAY));
         } else {
-            sender.sendMessage(Component.text("已配置的末地刷新时间:", NamedTextColor.GREEN));
+            sender.sendMessage(Component.text("已配置的末地刷新时间:", NamedTextColor.GRAY));
             for (String timeStr : times) {
-                Component timeComponent = Component.text("- " + timeStr, NamedTextColor.AQUA);
+                Component timeComponent = Component.text("- " + timeStr, NamedTextColor.WHITE);
                 Component removeButton = Component.text(" [删除]", NamedTextColor.RED, TextDecoration.BOLD)
                         .clickEvent(ClickEvent.suggestCommand("/" + baseCommand + " remove " + timeStr))
                         .hoverEvent(HoverEvent.showText(Component.text("点击删除: " + timeStr, NamedTextColor.GRAY)));
@@ -137,10 +137,10 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
             }
 
             if (configManager.addRefreshEntry(timeToAdd)) {
-                sender.sendMessage(Component.text("已成功添加刷新时间: " + dateTimeStr, NamedTextColor.GREEN));
+                sender.sendMessage(Component.text("已成功添加刷新时间: " + dateTimeStr, NamedTextColor.GRAY));
                 endResetScheduler.reloadSchedule(); // 调用 EndResetScheduler 的重载方法
             } else {
-                sender.sendMessage(Component.text("刷新时间 " + dateTimeStr + " 已存在。", NamedTextColor.YELLOW));
+                sender.sendMessage(Component.text("刷新时间 " + dateTimeStr + " 已存在。", NamedTextColor.RED));
             }
         } catch (DateTimeParseException e) {
             sender.sendMessage(Component.text("时间格式错误，请使用 'yyyy-MM-dd HH:mm:ss' 格式。", NamedTextColor.RED));
@@ -156,10 +156,10 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
         try {
             LocalDateTime timeToRemove = LocalDateTime.parse(dateTimeStr, formatter);
             if (configManager.removeRefreshEntry(timeToRemove)) {
-                sender.sendMessage(Component.text("已成功移除刷新时间: " + dateTimeStr, NamedTextColor.GREEN));
+                sender.sendMessage(Component.text("已成功移除刷新时间: " + dateTimeStr, NamedTextColor.GRAY));
                 endResetScheduler.reloadSchedule(); // 调用 EndResetScheduler 的重载方法
             } else {
-                sender.sendMessage(Component.text("未找到刷新时间: " + dateTimeStr, NamedTextColor.YELLOW));
+                sender.sendMessage(Component.text("未找到刷新时间: " + dateTimeStr, NamedTextColor.RED));
             }
         } catch (DateTimeParseException e) {
             sender.sendMessage(Component.text("时间格式错误，请使用 'yyyy-MM-dd HH:mm:ss' 格式。", NamedTextColor.RED));
@@ -168,42 +168,42 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
     }
 
     private void sendHelp(CommandSender sender) {
-        Component helpMessage = Component.text("--- 末地自动刷新插件命令 ---", NamedTextColor.GOLD)
+        Component helpMessage = Component.text("--- 末地自动刷新插件命令 ---", NamedTextColor.WHITE)
                 .append(Component.newline())
-                .append(Component.text("/" + baseCommand + " reload", NamedTextColor.AQUA)
+                .append(Component.text("/" + baseCommand + " reload", NamedTextColor.GRAY)
                         .hoverEvent(HoverEvent.showText(Component.text("重载插件配置"))))
-                .append(Component.text(" - 重载插件配置", NamedTextColor.GRAY))
+                .append(Component.text(" - 重载插件配置", NamedTextColor.WHITE))
                 .append(Component.newline())
-                .append(Component.text("/" + baseCommand + " list", NamedTextColor.AQUA)
+                .append(Component.text("/" + baseCommand + " list", NamedTextColor.GRAY)
                         .hoverEvent(HoverEvent.showText(Component.text("列出所有刷新时间"))))
-                .append(Component.text(" - 列出所有刷新时间", NamedTextColor.GRAY))
+                .append(Component.text(" - 列出所有刷新时间", NamedTextColor.WHITE))
                 .append(Component.newline())
-                .append(Component.text("/" + baseCommand + " add <yyyy-MM-dd HH:mm:ss>", NamedTextColor.AQUA)
+                .append(Component.text("/" + baseCommand + " add <yyyy-MM-dd HH:mm:ss>", NamedTextColor.GRAY)
                         .hoverEvent(HoverEvent
                                 .showText(Component.text("添加刷新时间, 例如: /" + baseCommand + " add 2025-12-31 20:00:00"))))
-                .append(Component.text(" - 添加刷新时间", NamedTextColor.GRAY))
+                .append(Component.text(" - 添加刷新时间", NamedTextColor.WHITE))
                 .append(Component.newline())
-                .append(Component.text("/" + baseCommand + " remove <yyyy-MM-dd HH:mm:ss>", NamedTextColor.AQUA)
+                .append(Component.text("/" + baseCommand + " remove <yyyy-MM-dd HH:mm:ss>", NamedTextColor.GRAY)
                         .hoverEvent(HoverEvent.showText(
                                 Component.text("移除刷新时间, 例如: /" + baseCommand + " remove 2025-12-31 20:00:00"))))
-                .append(Component.text(" - 移除刷新时间", NamedTextColor.GRAY))
+                .append(Component.text(" - 移除刷新时间", NamedTextColor.WHITE))
                 .append(Component.newline())
-                .append(Component.text("/" + baseCommand + " editreward <时间戳> <add|remove|list> [索引]", NamedTextColor.AQUA)
+                .append(Component.text("/" + baseCommand + " editreward <时间戳> <add|remove|list> [索引]", NamedTextColor.GRAY)
                         .hoverEvent(HoverEvent.showText(Component.text("""
                                 编辑指定刷新事件的奖励物品
                                 时间戳格式: yyyy-MM-dd HH:mm:ss
                                 add: 添加手持物品
                                 remove <索引>: 移除指定索引的物品
                                 list: 列出奖励物品"""))))
-               .append(Component.text(" - 编辑奖励物品", NamedTextColor.GRAY))
+               .append(Component.text(" - 编辑奖励物品", NamedTextColor.WHITE))
                .append(Component.newline())
-               .append(Component.text("/" + baseCommand + " claimreward", NamedTextColor.AQUA)
+               .append(Component.text("/" + baseCommand + " claimreward", NamedTextColor.GRAY)
                        .hoverEvent(HoverEvent.showText(Component.text("领取当前末地远征的奖励"))))
-               .append(Component.text(" - 领取本轮奖励", NamedTextColor.GRAY))
+               .append(Component.text(" - (玩家)领取本轮奖励", NamedTextColor.WHITE))
                .append(Component.newline())
-               .append(Component.text("/" + baseCommand + " refreshnow", NamedTextColor.AQUA)
+               .append(Component.text("/" + baseCommand + " refreshnow", NamedTextColor.GRAY)
                        .hoverEvent(HoverEvent.showText(Component.text("立即刷新末地"))))
-               .append(Component.text(" - 立即刷新末地", NamedTextColor.GRAY));
+               .append(Component.text(" - 立即刷新末地", NamedTextColor.WHITE));
        sender.sendMessage(helpMessage);
    }
 
@@ -213,7 +213,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
            return true;
        }
 
-       sender.sendMessage(Component.text("正在尝试立即刷新末地...", NamedTextColor.YELLOW));
+       sender.sendMessage(Component.text("正在尝试立即刷新末地...", NamedTextColor.WHITE));
        plugin.getLogger().info(sender.getName() + " 触发了手动末地刷新。");
 
        LocalDateTime now = LocalDateTime.now(configManager.getZoneId());
@@ -259,7 +259,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
            );
            // 尝试添加这个新条目
            if (configManager.addRefreshEntry(newManualEntry)) {
-               sender.sendMessage(Component.text("已为本次手动刷新创建新的记录条目。", NamedTextColor.GREEN));
+               sender.sendMessage(Component.text("已为本次手动刷新创建新的记录条目。", NamedTextColor.GRAY));
                plugin.getLogger().info("为手动刷新创建了新的 RefreshEntry: " + now.format(formatter));
            } else {
                // 理论上，由于上面的 tooCloseToExisting 检查，这里不应该发生。
@@ -296,7 +296,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
        plugin.getEndResetScheduler().forceResetEndWorld(); // 需要一个公共方法来触发
        configManager.loadRefreshEntries(); // 确保在重置后，配置状态得到更新
 
-       sender.sendMessage(Component.text("末地已手动刷新。", NamedTextColor.GREEN));
+       sender.sendMessage(Component.text("末地已手动刷新。", NamedTextColor.GRAY));
        plugin.getLogger().info("末地已由 " + sender.getName() + " 手动刷新完成。");
 
        // 手动刷新后，也需要更新 BossBar
@@ -327,7 +327,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
                .findFirst();
 
        if (currentEntryOptional.isEmpty()) {
-           player.sendMessage(Component.text("当前没有可领取的末地远征奖励。", NamedTextColor.YELLOW));
+           player.sendMessage(Component.text("当前没有可领取的末地远征奖励。", NamedTextColor.GRAY));
            return true;
        }
 
@@ -335,12 +335,12 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
 
        // 2. 检查领取资格
        if (currentEntry.getRewardClaimedPlayers().contains(playerUuid.toString())) {
-           player.sendMessage(Component.text("您已经领取过本轮末地远征的奖励了。", NamedTextColor.YELLOW));
+           player.sendMessage(Component.text("您已经领取过本轮末地远征的奖励了。", NamedTextColor.GRAY));
            return true;
        }
 
        if (currentEntry.getRewardItems() == null || currentEntry.getRewardItems().isEmpty()) {
-           player.sendMessage(Component.text("本轮末地远征暂未配置奖励物品。", NamedTextColor.YELLOW));
+           player.sendMessage(Component.text("本轮末地远征暂未配置奖励物品。", NamedTextColor.GRAY));
            return true;
        }
 
@@ -364,7 +364,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
            player.sendMessage(Component.text("你的背包已满！部分奖励物品掉落在你的脚下：", NamedTextColor.RED));
            for (ItemStack dropItem : notAddedItems) {
                player.getWorld().dropItemNaturally(player.getLocation(), dropItem);
-               player.sendMessage(Component.text("- " + dropItem.getType() + " x" + dropItem.getAmount(), NamedTextColor.GRAY));
+               player.sendMessage(Component.text("- " + dropItem.getType() + " x" + dropItem.getAmount(), NamedTextColor.WHITE));
            }
        }
 
@@ -372,7 +372,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
        currentEntry.getRewardClaimedPlayers().add(playerUuid.toString());
        configManager.saveRefreshEntriesToConfig();
 
-       player.sendMessage(Component.text("末地远征奖励已发放！", NamedTextColor.GREEN));
+       player.sendMessage(Component.text("末地远征奖励已发放！", NamedTextColor.GRAY));
        return true;
    }
 
@@ -406,7 +406,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
 
         Optional<ConfigManager.RefreshEntry> entryOptional = configManager.getRefreshEntryByTime(timestamp);
         if (entryOptional.isEmpty()) {
-            sender.sendMessage(Component.text("未找到指定时间戳的刷新事件: " + timestampStr, NamedTextColor.YELLOW));
+            sender.sendMessage(Component.text("未找到指定时间戳的刷新事件: " + timestampStr, NamedTextColor.RED));
             return true;
         }
         ConfigManager.RefreshEntry entry = entryOptional.get();
@@ -428,7 +428,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
 
                 entry.getRewardItems().add(itemInHand.clone()); // 添加克隆以防意外修改
                 configManager.saveRefreshEntriesToConfig(); // 保存配置
-                sender.sendMessage(Component.text("已将手中的物品添加到 " + timestampStr + " 的奖励列表。", NamedTextColor.GREEN));
+                sender.sendMessage(Component.text("已将手中的物品添加到 " + timestampStr + " 的奖励列表。", NamedTextColor.GRAY));
                 // 通知所有末地的玩家有新奖励可领
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     if (p.getWorld().getEnvironment() == World.Environment.THE_END) {
@@ -459,27 +459,27 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
                 ItemStack removedItem = rewardItemsRemove.remove(indexToRemove);
                 configManager.saveRefreshEntriesToConfig(); // 保存配置
                 // 修改反馈消息，不再使用 getItemDisplayName
-                sender.sendMessage(Component.text("已从 " + timestampStr + " 的奖励列表中移除物品: " + removedItem.getType() + " x" + removedItem.getAmount(), NamedTextColor.GREEN));
+                sender.sendMessage(Component.text("已从 " + timestampStr + " 的奖励列表中移除物品: " + removedItem.getType() + " x" + removedItem.getAmount(), NamedTextColor.GRAY));
                 break;
 
             case "list":
                 List<ItemStack> rewardItemsList = entry.getRewardItems();
                 if (rewardItemsList.isEmpty()) {
-                    sender.sendMessage(Component.text("刷新事件 " + timestampStr + " 当前没有配置奖励物品。", NamedTextColor.YELLOW));
+                    sender.sendMessage(Component.text("刷新事件 " + timestampStr + " 当前没有配置奖励物品。", NamedTextColor.GRAY));
                     return true;
                 }
 
-                sender.sendMessage(Component.text("刷新事件 " + timestampStr + " 的奖励物品列表:", NamedTextColor.GOLD));
+                sender.sendMessage(Component.text("刷新事件 " + timestampStr + " 的奖励物品列表:", NamedTextColor.WHITE));
                 for (int i = 0; i < rewardItemsList.size(); i++) {
                     ItemStack item = rewardItemsList.get(i);
                     // 使用 ItemStack#asHoverEvent()
-                    Component itemText = Component.text("- [" + i + "] " + item.getType() + " x" + item.getAmount(), NamedTextColor.AQUA)
+                    Component itemText = Component.text("- [" + i + "] " + item.getType() + " x" + item.getAmount(), NamedTextColor.GRAY)
                             .hoverEvent(item.asHoverEvent()); // 使用 ItemStack#asHoverEvent()
 
-                    Component removeButton = Component.text(" [移除]", NamedTextColor.RED, TextDecoration.UNDERLINED)
+                    Component removeButton = Component.text("[移除]", NamedTextColor.RED, TextDecoration.UNDERLINED)
                             .clickEvent(ClickEvent.runCommand("/" + baseCommand + " editreward " + timestampStr + " remove " + i))
                             .hoverEvent(HoverEvent.showText(Component.text("点击移除此奖励物品 (索引 " + i + ")", NamedTextColor.GRAY)));
-                    sender.sendMessage(itemText.append(removeButton));
+                    sender.sendMessage(itemText.appendSpace().append(removeButton));
                 }
                 break;
 

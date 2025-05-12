@@ -177,7 +177,7 @@ public class DragonEggListener implements Listener {
                                         "在末地的 (0,0) 处找不到基岩。正在将龙蛋重置到默认位置。");
                             }
                             // 可以在这里再发一个公告，说明龙蛋已重置
-                            Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<green>龙蛋已成功重置！</green>"));
+                            Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<white>龙蛋已成功重置！</white>"));
                         },
                         null // Show to all online players
                 );
