@@ -3,6 +3,7 @@ package ink.magma.zthTerminal3EndAutoRenew;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional; // 新增导入
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -25,12 +26,12 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 public class DragonEggListener implements Listener {
     private final JavaPlugin plugin;
-    private final ConfigManager config;
+    private final ConfigManager configManager;
     private final BossBarManager bossBarManager; // Add BossBarManager instance
 
-    public DragonEggListener(JavaPlugin plugin, ConfigManager config, BossBarManager bossBarManager) {
+    public DragonEggListener(JavaPlugin plugin, ConfigManager configManager, BossBarManager bossBarManager) {
         this.plugin = plugin;
-        this.config = config;
+        this.configManager = configManager;
         this.bossBarManager = bossBarManager; // Initialize BossBarManager
     }
 
@@ -41,19 +42,64 @@ public class DragonEggListener implements Listener {
             return;
         }
 
+        // 确保事件发生在末地
+        if (player.getWorld().getEnvironment() != World.Environment.THE_END) {
+            return;
+        }
+
         ItemStack itemStack = event.getItem().getItemStack();
         if (itemStack.getType() != Material.DRAGON_EGG) {
             return;
         }
 
         ItemMeta itemMeta = itemStack.getItemMeta();
+        // 确保是原始龙蛋（没有被修改过 Lore 的）
         if (itemMeta == null || !isOriginalDragonEgg(itemMeta)) {
             return;
         }
 
-        addLoreToDragonEgg(itemMeta, player);
-        itemStack.setItemMeta(itemMeta);
-        announceDragonEggWinner(player);
+        // 确定“当前期”的 RefreshEntry
+        Optional<ConfigManager.RefreshEntry> currentEntryOptional = configManager.getCurrentRefreshEntry();
+
+        if (currentEntryOptional.isEmpty()) {
+            plugin.getLogger().info("龙蛋被拾取，但未找到当前刷新期条目，不记录拾取者。玩家: " + player.getName());
+            // 如果没有当前期条目，可以选择不给龙蛋添加 Lore，也不广播，或者执行其他逻辑
+            // 为保持原有逻辑的最小改动，这里我们依然允许添加 Lore 和广播，但不会记录到 config
+            // 如果需要严格控制，则在此处 return
+            // addLoreToDragonEgg(itemMeta, player); // 如果需要，可以取消注释这两行
+            // itemStack.setItemMeta(itemMeta);
+            // announceDragonEggWinner(player);
+            return; // 明确：如果找不到当前期，则不记录，也不执行后续操作
+        }
+
+        ConfigManager.RefreshEntry currentEntry = currentEntryOptional.get();
+
+        // 检查并记录拾取者
+        if (currentEntry.getDragonEggOwner().getUuid() == null) {
+            // 记录拾取者信息
+            currentEntry.getDragonEggOwner().setUuid(player.getUniqueId());
+            currentEntry.getDragonEggOwner().setName(player.getName());
+            currentEntry.getDragonEggOwner().setPickupTime(LocalDateTime.now(configManager.getZoneId()));
+
+            configManager.saveRefreshTimesToConfig(); // 保存更改到配置文件
+
+            plugin.getLogger().info("玩家 " + player.getName() + " 拾取了龙蛋，已记录。刷新期: " + currentEntry.getTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+
+            // 执行原有后续操作
+            addLoreToDragonEgg(itemMeta, player);
+            itemStack.setItemMeta(itemMeta);
+            announceDragonEggWinner(player);
+        } else {
+            // 本期龙蛋得主已被记录
+            plugin.getLogger().info("玩家 " + player.getName() + " 尝试拾取龙蛋，但本期得主 (" + currentEntry.getDragonEggOwner().getName() + ") 已被记录。刷新期: " + currentEntry.getTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            // 不执行任何操作，不覆盖记录，也不重复执行后续操作
+            // 注意：这里需要阻止物品被拾取，或者在拾取后移除 Lore（如果已错误添加）
+            // 为简单起见，我们假设如果已被记录，玩家拾取到的龙蛋不应该再被添加新的 Lore
+            // 如果玩家拾取的是一个已经有 Lore 的龙蛋（非原始），isOriginalDragonEgg 会处理
+            // 如果玩家拾取的是原始龙蛋，但记录已存在，则不应添加 Lore 和广播
+            // 因此，如果记录已存在，我们直接返回，不执行 addLore 和 announce
+            return;
+        }
     }
 
     private boolean isOriginalDragonEgg(ItemMeta meta) {
@@ -67,9 +113,9 @@ public class DragonEggListener implements Listener {
 
         // 获取配置中的 Lore 模板（移除变量部分）
         String configLoreTemplatePlain = "";
-        if (config.dragonEggLore != null && !config.dragonEggLore.isEmpty()) {
+        if (configManager.dragonEggLore != null && !configManager.dragonEggLore.isEmpty()) {
             Component configTemplateComponent = MiniMessage.miniMessage()
-                    .deserialize(config.dragonEggLore.get(0).replace("{player}", "").replace("{date}", ""));
+                    .deserialize(configManager.dragonEggLore.get(0).replace("{player}", "").replace("{date}", ""));
             configLoreTemplatePlain = PlainTextComponentSerializer.plainText().serialize(configTemplateComponent);
         }
 
@@ -80,9 +126,9 @@ public class DragonEggListener implements Listener {
     private void addLoreToDragonEgg(ItemMeta meta, Player player) {
         List<Component> lore = new java.util.ArrayList<>();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        String date = fmt.format(LocalDateTime.now(config.getZoneId()));
+        String date = fmt.format(LocalDateTime.now(configManager.getZoneId()));
 
-        for (String line : config.dragonEggLore) {
+        for (String line : configManager.dragonEggLore) {
             String replaced = line.replace("{player}", player.getName()).replace("{date}", date);
             lore.add(MiniMessage.miniMessage().deserialize(replaced));
         }
@@ -90,7 +136,7 @@ public class DragonEggListener implements Listener {
     }
 
     private void announceDragonEggWinner(Player player) {
-        String msg = config.announceWinner.replace("{player}", player.getName());
+        String msg = configManager.announceWinner.replace("{player}", player.getName());
         Bukkit.broadcast(MiniMessage.miniMessage().deserialize(msg));
     }
 
@@ -107,14 +153,14 @@ public class DragonEggListener implements Listener {
                 item.remove();
 
                 // 公告龙蛋即将重置
-                String announceMsg = config.announceEggReset;
+                String announceMsg = configManager.announceEggReset;
                 Bukkit.broadcast(MiniMessage.miniMessage().deserialize(announceMsg));
 
                 // 使用 BossBarManager 显示倒计时
                 final String bossBarId = "dragon_egg_reset_countdown";
                 bossBarManager.showGlobalCountdownBossBar(
                         bossBarId,
-                        config.eggResetBossBarTitle, // Title template from config
+                        configManager.eggResetBossBarTitle, // Title template from config
                         BarColor.PINK, // Example color
                         BarStyle.SOLID, // Example style
                         60, // 60 seconds countdown

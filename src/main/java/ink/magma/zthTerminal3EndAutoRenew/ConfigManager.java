@@ -502,6 +502,20 @@ public class ConfigManager {
         return Collections.unmodifiableList(new ArrayList<>(refreshTimes)); // 返回副本以防外部修改
     }
 
+    /**
+     * 获取“当前期”的 RefreshEntry。
+     * “当前期”定义为：从所有 RefreshEntry 中，筛选出 time 小于或等于当前时间的条目，
+     * 按 time 降序排序，取第一个。
+     * @return Optional 包装的当前 RefreshEntry，如果找不到则为空。
+     */
+    public Optional<RefreshEntry> getCurrentRefreshEntry() {
+        LocalDateTime now = LocalDateTime.now(getZoneId());
+        return refreshTimes.stream()
+                .filter(entry -> !entry.getTime().isAfter(now)) // entry.time <= now
+                .sorted(Comparator.comparing(RefreshEntry::getTime).reversed()) // 按 time 降序
+                .findFirst();
+    }
+
 
     // --- 其他配置项的 Getter 方法 ---
 
