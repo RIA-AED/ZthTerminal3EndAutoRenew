@@ -30,7 +30,10 @@ public class EndResetScheduler implements Listener {
     private final JavaPlugin plugin;
     private final ConfigManager configManager;
     private final BossBarManager bossBarManager;
-    private BukkitTask resetCheckTask;
+    // 低频轮询任务A（拉起/管理高频B）
+    private BukkitTask lowFreqCheckTask;
+    // 高频轮询任务B（精准到点自动重置）
+    private BukkitTask highFreqCheckTask;
     private BukkitTask bossBarUpdateTask;
 
     public static final String END_RESET_BAR_ID = "zth_end_reset_countdown";
@@ -52,15 +55,35 @@ public class EndResetScheduler implements Listener {
     public void start() {
         stop(); // 确保在启动新任务前停止所有现有任务
 
-        // 检查重置时间的任务 (例如每分钟运行一次)
-        resetCheckTask = new BukkitRunnable() {
+        // 轮询A：每10秒检查一次是否进入高精度检测区间
+        lowFreqCheckTask = new BukkitRunnable() {
             @Override
             public void run() {
-                checkAndResetEnd();
-            }
-        }.runTaskTimer(plugin, 20L * 10, 20L * 10); // 10秒后开始，然后每10秒一次
+                List<ConfigManager.RefreshEntry> future = configManager.getFutureRefreshEntries();
+                if (future.isEmpty()) return;
+                LocalDateTime nextResetTime = future.get(0).getTime();
+                ZoneId zoneId = configManager.getZoneId();
+                LocalDateTime now = LocalDateTime.now(zoneId);
+                long secondsLeft = java.time.Duration.between(now, nextResetTime).getSeconds();
 
-        // 更新 BossBar 的任务 (每秒运行一次)
+                if (secondsLeft <= 30 && secondsLeft >= 0) {
+                    // 启动/维持高频轮询B
+                    if (highFreqCheckTask == null || highFreqCheckTask.isCancelled()) {
+                        plugin.getLogger().info("已进入末地重置30秒临界区，切换至高频检测...");
+                        startHighFreqResetCheck(nextResetTime);
+                    }
+                } else {
+                    // 如B存在但不在临界区，强制关闭B
+                    if (highFreqCheckTask != null && !highFreqCheckTask.isCancelled()) {
+                        highFreqCheckTask.cancel();
+                        highFreqCheckTask = null;
+                        plugin.getLogger().info("已离开高频重置检测区，高频检测已关闭。");
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 10 * 20L, 10 * 20L); // 10秒后开始，然后每10秒
+
+        // BossBar刷新任务
         bossBarUpdateTask = new BukkitRunnable() {
             @Override
             public void run() {
@@ -69,10 +92,44 @@ public class EndResetScheduler implements Listener {
         }.runTaskTimer(plugin, 20L, 20L); // 1秒后开始，然后每秒一次
     }
 
+    /**
+     * 启动高频检测B，tick级别认定是否到点并精确重置。
+     * 到点即回收自身、关闭自身任务handle。
+     * @param resetTime 目标重置时间
+     */
+    private void startHighFreqResetCheck(LocalDateTime resetTime) {
+        if (highFreqCheckTask != null && !highFreqCheckTask.isCancelled()) {
+            return; // 已经有B任务在运行
+        }
+        highFreqCheckTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                LocalDateTime now = LocalDateTime.now(configManager.getZoneId());
+                if (!now.isBefore(resetTime)) {
+                    plugin.getLogger().info("高精度检测触发末地自动重置：" + resetTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                    resetEndWorld();
+                    configManager.loadRefreshEntries();
+                    // BossBar等立即刷新
+                    Bukkit.getOnlinePlayers().forEach(EndResetScheduler.this::updatePlayerEndBarStatus);
+                    // 高频检测关闭
+                    if (highFreqCheckTask != null && !highFreqCheckTask.isCancelled()) {
+                        highFreqCheckTask.cancel();
+                        highFreqCheckTask = null;
+                        plugin.getLogger().info("重置达成，高频检测任务已关闭。");
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 1L, 1L); // 1tick后开始，每tick运行
+    }
+
     public void stop() {
-        if (resetCheckTask != null && !resetCheckTask.isCancelled()) {
-            resetCheckTask.cancel();
-            resetCheckTask = null;
+        if (lowFreqCheckTask != null && !lowFreqCheckTask.isCancelled()) {
+            lowFreqCheckTask.cancel();
+            lowFreqCheckTask = null;
+        }
+        if (highFreqCheckTask != null && !highFreqCheckTask.isCancelled()) {
+            highFreqCheckTask.cancel();
+            highFreqCheckTask = null;
         }
         if (bossBarUpdateTask != null && !bossBarUpdateTask.isCancelled()) {
             bossBarUpdateTask.cancel();
@@ -87,8 +144,7 @@ public class EndResetScheduler implements Listener {
     }
 
     public void reloadSchedule() {
-        // ConfigManager 被假定已在外部重载。
-        // 重启任务以应用任何潜在的调度更改，并确保任务正在运行。
+        // 通常由外部热重载配置后调用
         stop();
         start();
         plugin.getLogger().info("末地重置调度器任务已重载。");
@@ -191,39 +247,7 @@ public class EndResetScheduler implements Listener {
         updatePlayerEndBarStatus(player);
     }
 
-    private void checkAndResetEnd() {
-        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshEntries();
-        if (futureRefreshEntries.isEmpty()) {
-            return; // 没有计划的未来重置
-        }
-
-        ConfigManager.RefreshEntry nextEntry = futureRefreshEntries.get(0); // 获取最早的未来刷新事件
-        LocalDateTime nextResetTime = nextEntry.getTime();
-        ZoneId zoneId = configManager.getZoneId();
-        LocalDateTime now = LocalDateTime.now(zoneId);
-
-        // 检查这个未来的事件是否已经到了或过去了
-        // （理论上，由于 getFutureRefreshTimes 的过滤，nextResetTime 总是未来的，
-        //  但为了保险起见，以及处理可能的极小时间差，我们仍然检查）
-        if (!now.isBefore(nextResetTime)) {
-            plugin.getLogger().info("已到达计划的末地重置时间: " + nextResetTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + " (当前时间: " + now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ")");
-            plugin.getLogger().info("正在重置末地...");
-            resetEndWorld();
-
-            // 重置完成后，重新加载配置。
-            // 这会将刚刚处理的事件标记为“已过去”，
-            // 并且 getFutureRefreshTimes() 在下次调用时会返回下一个真正的未来事件。
-            configManager.loadRefreshEntries();
-
-            // 重新加载调度器任务，这会更新 BossBar 并确保下一个检查点正确。
-            // reloadSchedule() 内部会调用 stop() 和 start()，
-            // start() 会重新安排 resetCheckTask 和 bossBarUpdateTask。
-            // bossBarUpdateTask 会基于新的（可能是空的）futureRefreshEntries 更新 BossBar。
-            reloadSchedule();
-
-            plugin.getLogger().info("末地已自动重置，配置和调度已更新。");
-        }
-    }
+    // scheduleNextReset方法已废除，高精度检测及定时调度由高低频轮询机制替代
 
     /**
      * 公共方法，用于从外部（例如命令）强制触发末地重置。
