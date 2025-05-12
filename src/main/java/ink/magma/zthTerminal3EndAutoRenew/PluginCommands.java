@@ -72,7 +72,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleReload(CommandSender sender) {
-        if (!sender.hasPermission("zthterminal3endautorenew.reload")) {
+        if (!sender.hasPermission("zth.endrenew.reload")) {
             sender.sendMessage(Component.text("你没有权限执行此命令。", NamedTextColor.RED));
             return true;
         }
@@ -86,7 +86,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleListTimes(CommandSender sender) {
-        if (!sender.hasPermission("zthterminal3endautorenew.manage")) { // 假设管理时间使用 .manage 权限
+        if (!sender.hasPermission("zth.endrenew.manage")) { // 假设管理时间使用 .manage 权限
             sender.sendMessage(Component.text("你没有权限执行此命令。", NamedTextColor.RED));
             return true;
         }
@@ -108,7 +108,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleAddTime(CommandSender sender, String dateTimeStr, String commandLabel) {
-        if (!sender.hasPermission("zthterminal3endautorenew.manage")) {
+        if (!sender.hasPermission("zth.endrenew.manage")) {
             sender.sendMessage(Component.text("你没有权限执行此命令。", NamedTextColor.RED));
             return true;
         }
@@ -133,7 +133,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleRemoveTime(CommandSender sender, String dateTimeStr, String commandLabel) {
-        if (!sender.hasPermission("zthterminal3endautorenew.manage")) {
+        if (!sender.hasPermission("zth.endrenew.manage")) {
             sender.sendMessage(Component.text("你没有权限执行此命令。", NamedTextColor.RED));
             return true;
         }
@@ -181,10 +181,10 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
         String currentArg = args[args.length - 1].toLowerCase();
 
         if (args.length == 1) {
-            if (sender.hasPermission("zthterminal3endautorenew.reload")) {
+            if (sender.hasPermission("zth.endrenew.reload")) {
                 completions.add("reload");
             }
-            if (sender.hasPermission("zthterminal3endautorenew.manage")) {
+            if (sender.hasPermission("zth.endrenew.manage")) {
                 completions.add("list");
                 completions.add("add");
                 completions.add("remove");
@@ -192,7 +192,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
         } else if (args.length >= 2) {
             String subCommand = args[0].toLowerCase();
             if (subCommand.equals("add") || subCommand.equals("remove")) {
-                if (sender.hasPermission("zthterminal3endautorenew.manage")) {
+                if (sender.hasPermission("zth.endrenew.manage")) {
                     if (args.length == 2) { // Date part
                         completions.add(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
                         if (subCommand.equals("remove")) {

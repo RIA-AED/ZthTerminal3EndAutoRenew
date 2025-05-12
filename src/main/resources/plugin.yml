@@ -7,19 +7,19 @@ commands:
   zth-end-renew:
     description: "Manages the ZthTerminal3EndAutoRenew plugin, including reloads and reset schedule."
     aliases: [zthautorenew, zthrenew, ztrend]
-    permission: zthterminal3endautorenew.use # A general use permission, specific sub-commands have their own.
+    permission: zth.endrenew.use # A general use permission, specific sub-commands have their own.
     usage: |
       /<command> reload
       /<command> list
       /<command> add <yyyy-MM-dd HH:mm:ss>
       /<command> remove <yyyy-MM-dd HH:mm:ss>
 permissions:
-  zthterminal3endautorenew.use:
+  zth.endrenew.use:
     description: "Allows basic usage of the zthautorenew command."
     default: op
-  zthterminal3endautorenew.reload:
+  zth.endrenew.reload:
     description: "Allows reloading the plugin configuration."
     default: op
-  zthterminal3endautorenew.manage:
+  zth.endrenew.manage:
     description: "Allows managing the End reset schedule (list, add, remove times)."
     default: op

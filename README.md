@@ -82,10 +82,10 @@ flowchart TD
 
 | 命令格式                                      | 权限节点                              | 功能说明                   |
 |-----------------------------------------------|--------------------------------------|----------------------------|
-| /zth-end-renew reload                          | zthterminal3endautorenew.reload      | 重载插件配置               |
-| /zth-end-renew list                            | zthterminal3endautorenew.manage      | 列出所有已配置刷新时间     |
-| /zth-end-renew add <yyyy-MM-dd HH:mm:ss>       | zthterminal3endautorenew.manage      | 添加一个新的刷新时间点     |
-| /zth-end-renew remove <yyyy-MM-dd HH:mm:ss>    | zthterminal3endautorenew.manage      | 移除指定的刷新时间点       |
+| /zth-end-renew reload                          | zth.endrenew.reload      | 重载插件配置               |
+| /zth-end-renew list                            | zth.endrenew.manage      | 列出所有已配置刷新时间     |
+| /zth-end-renew add <yyyy-MM-dd HH:mm:ss>       | zth.endrenew.manage      | 添加一个新的刷新时间点     |
+| /zth-end-renew remove <yyyy-MM-dd HH:mm:ss>    | zth.endrenew.manage      | 移除指定的刷新时间点       |
 
 - 示例：`/zth-end-renew add 2025-12-31 20:00:00`
 - 时间参数需严格遵循 `yyyy-MM-dd HH:mm:ss` 格式，且必须为未来时间。
