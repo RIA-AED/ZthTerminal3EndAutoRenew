@@ -4,9 +4,13 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap; // 新增导入
 import java.util.List;
 import java.util.Optional; // 新增导入
+import java.util.UUID; // 新增导入，用于玩家UUID
 import java.util.stream.Collectors;
+import java.util.Collections; // 新增导入
+import java.util.Comparator; // 新增导入
 
 import org.bukkit.Material; // 新增导入
 import org.bukkit.command.Command;
@@ -15,6 +19,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player; // 新增导入
 import org.bukkit.inventory.ItemStack; // 新增导入
+import org.bukkit.inventory.PlayerInventory; // 新增导入
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -71,6 +76,8 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
                 return handleRemoveTime(sender, dateTimeStrRemove, label);
             case "editreward":
                 return handleEditReward(sender, args, label);
+            case "claimreward":
+                return handleClaimReward(sender);
             default:
                 sendHelp(sender);
                 return true;
@@ -184,11 +191,88 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
                                 "add: 添加手持物品\n" +
                                 "remove <索引>: 移除指定索引的物品\n" +
                                 "list: 列出奖励物品"))))
-                .append(Component.text(" - 编辑奖励物品", NamedTextColor.GRAY));
-        sender.sendMessage(helpMessage);
-    }
+               .append(Component.text(" - 编辑奖励物品", NamedTextColor.GRAY))
+               .append(Component.newline())
+               .append(Component.text("/" + baseCommand + " claimreward", NamedTextColor.AQUA)
+                       .hoverEvent(HoverEvent.showText(Component.text("领取当前末地远征的奖励"))))
+               .append(Component.text(" - 领取本轮奖励", NamedTextColor.GRAY));
+       sender.sendMessage(helpMessage);
+   }
 
-    private boolean handleEditReward(CommandSender sender, String[] args, String commandLabel) {
+   private boolean handleClaimReward(CommandSender sender) {
+       if (!(sender instanceof Player)) {
+           sender.sendMessage(Component.text("此命令只能由玩家执行。", NamedTextColor.RED));
+           return true;
+       }
+       if (!sender.hasPermission("zthendrenew.player.claimreward")) {
+           sender.sendMessage(Component.text("你没有权限执行此命令。", NamedTextColor.RED));
+           return true;
+       }
+
+       Player player = (Player) sender;
+       UUID playerUuid = player.getUniqueId();
+       LocalDateTime now = LocalDateTime.now(configManager.getZoneId());
+
+       // 1. 确定“当前期”的 RefreshEntry
+       List<ConfigManager.RefreshEntry> allEntries = new ArrayList<>(configManager.getAllRefreshEntries());
+       Collections.sort(allEntries, Comparator.comparing(ConfigManager.RefreshEntry::getTime).reversed()); // 按时间降序
+
+       Optional<ConfigManager.RefreshEntry> currentEntryOptional = allEntries.stream()
+               .filter(entry -> !entry.getTime().isAfter(now)) // 时间已过去或正好是现在
+               .findFirst();
+
+       if (currentEntryOptional.isEmpty()) {
+           player.sendMessage(Component.text("当前没有可领取的末地远征奖励。", NamedTextColor.YELLOW));
+           return true;
+       }
+
+       ConfigManager.RefreshEntry currentEntry = currentEntryOptional.get();
+
+       // 2. 检查领取资格
+       if (currentEntry.getRewardClaimedPlayers().contains(playerUuid.toString())) {
+           player.sendMessage(Component.text("您已经领取过本轮末地远征的奖励了。", NamedTextColor.YELLOW));
+           return true;
+       }
+
+       if (currentEntry.getRewardItems() == null || currentEntry.getRewardItems().isEmpty()) {
+           player.sendMessage(Component.text("本轮末地远征暂未配置奖励物品。", NamedTextColor.YELLOW));
+           return true;
+       }
+
+       // 3. 发放奖励
+       PlayerInventory inventory = player.getInventory();
+       List<ItemStack> itemsToGive = currentEntry.getRewardItems();
+       List<ItemStack> notAddedItems = new ArrayList<>();
+
+       for (ItemStack item : itemsToGive) {
+           if (item != null && item.getType() != Material.AIR) {
+               // 尝试添加到背包，如果满了，则记录下来
+               HashMap<Integer, ItemStack> couldNotFit = inventory.addItem(item.clone()); // 发放克隆
+               if (!couldNotFit.isEmpty()) {
+                   notAddedItems.addAll(couldNotFit.values());
+               }
+           }
+       }
+
+       // 处理背包满的情况
+       if (!notAddedItems.isEmpty()) {
+           player.sendMessage(Component.text("你的背包已满！部分奖励物品掉落在你的脚下：", NamedTextColor.RED));
+           for (ItemStack dropItem : notAddedItems) {
+               player.getWorld().dropItemNaturally(player.getLocation(), dropItem);
+               player.sendMessage(Component.text("- " + dropItem.getType().toString() + " x" + dropItem.getAmount(), NamedTextColor.GRAY));
+           }
+       }
+
+       // 4. 更新领取记录并保存配置
+       currentEntry.getRewardClaimedPlayers().add(playerUuid.toString());
+       configManager.saveRefreshTimesToConfig();
+
+       player.sendMessage(Component.text("末地远征奖励已发放！", NamedTextColor.GREEN));
+       return true;
+   }
+
+
+   private boolean handleEditReward(CommandSender sender, String[] args, String commandLabel) {
         if (!sender.hasPermission("zthendrenew.admin.editreward")) {
             sender.sendMessage(Component.text("你没有权限执行此命令。", NamedTextColor.RED));
             return true;
@@ -315,6 +399,9 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
             }
             if (sender.hasPermission("zthendrenew.admin.editreward")) {
                 completions.add("editreward");
+            }
+            if (sender.hasPermission("zthendrenew.player.claimreward")) {
+                completions.add("claimreward");
             }
         } else if (args.length >= 2) {
             String subCommand = args[0].toLowerCase();
