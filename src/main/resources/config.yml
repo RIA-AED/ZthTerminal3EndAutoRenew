@@ -3,9 +3,24 @@
 timezone: Asia/Shanghai
 
 refresh-times:
-  - '2025-06-07 20:00:00'
-  - '2025-07-05 20:00:00'
-  - '2025-08-02 20:00:00'
+  - time: '2025-06-07 20:00:00' # 刷新时间
+    dragon-egg-owner: # 龙蛋得主信息
+      uuid: '' # 玩家 UUID
+      name: '' # 玩家名称
+      pickup-time: '' # 拾取时间
+    reward-claimed-players: [] # 已领取奖励的玩家 UUID 列表
+  - time: '2025-07-05 20:00:00'
+    dragon-egg-owner:
+      uuid: ''
+      name: ''
+      pickup-time: ''
+    reward-claimed-players: []
+  - time: '2025-08-02 20:00:00'
+    dragon-egg-owner:
+      uuid: ''
+      name: ''
+      pickup-time: ''
+    reward-claimed-players: []
 
 bossbar-message: "<gradient:#ce9ffc:#7367f0>距离末地重置还有 {time}</gradient>"
 
