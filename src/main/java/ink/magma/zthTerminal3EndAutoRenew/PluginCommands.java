@@ -114,7 +114,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
             for (String timeStr : times) {
                 Component timeComponent = Component.text("- " + timeStr, NamedTextColor.AQUA);
                 Component removeButton = Component.text(" [删除]", NamedTextColor.RED, TextDecoration.BOLD)
-                        .clickEvent(ClickEvent.runCommand("/" + baseCommand + " remove " + timeStr))
+                        .clickEvent(ClickEvent.suggestCommand("/" + baseCommand + " remove " + timeStr))
                         .hoverEvent(HoverEvent.showText(Component.text("点击删除: " + timeStr, NamedTextColor.GRAY)));
                 sender.sendMessage(timeComponent.append(removeButton));
             }
