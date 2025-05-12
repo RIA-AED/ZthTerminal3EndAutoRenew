@@ -372,8 +372,14 @@ public class ConfigManager {
     public List<String> listRefreshTimes() {
         LocalDateTime now = LocalDateTime.now(zoneId); // 获取当前时间进行比较
         return refreshTimes.stream()
-                .filter(entry -> entry.getTime().isAfter(now)) // 只选择未来的时间
-                .map(entry -> DATE_TIME_FORMATTER.format(entry.getTime())) // 格式化时间
+                // .filter(entry -> entry.getTime().isAfter(now)) // 不再只选择未来的时间
+                .map(entry -> {
+                    String timeStr = DATE_TIME_FORMATTER.format(entry.getTime());
+                    if (entry.getTime().isBefore(now)) {
+                        return timeStr + " (已过期)";
+                    }
+                    return timeStr;
+                }) // 格式化时间并标记已过期
                 .collect(Collectors.toList());
     }
 
@@ -505,6 +511,18 @@ public class ConfigManager {
 
             return sb.toString();
         }
+    }
+
+    /**
+     * 获取下一个（最早的）刷新条目，无论其是否已过期。
+     * @return Optional 包含下一个 RefreshEntry，如果列表为空则为空。
+     */
+    public Optional<RefreshEntry> peekNextRefreshEntry() {
+        if (refreshTimes.isEmpty()) {
+            return Optional.empty();
+        }
+        // refreshTimes 列表在加载和添加时已按时间升序排序
+        return Optional.of(refreshTimes.get(0));
     }
 
     /**

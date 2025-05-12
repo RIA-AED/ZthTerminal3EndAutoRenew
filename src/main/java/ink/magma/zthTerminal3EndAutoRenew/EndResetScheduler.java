@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional; // 新增导入
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
@@ -57,7 +58,7 @@ public class EndResetScheduler implements Listener {
             public void run() {
                 checkAndResetEnd();
             }
-        }.runTaskTimer(plugin, 20L * 10, 20L * 60); // 10秒后开始，然后每分钟一次
+        }.runTaskTimer(plugin, 20L * 10, 20L * 10); // 10秒后开始，然后每10秒一次
 
         // 更新 BossBar 的任务 (每秒运行一次)
         bossBarUpdateTask = new BukkitRunnable() {
@@ -96,8 +97,13 @@ public class EndResetScheduler implements Listener {
     }
 
     private void updateEndCountdownBars() {
-        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshTimes();
-        LocalDateTime nextRefreshTime = futureRefreshEntries.isEmpty() ? null : futureRefreshEntries.get(0).getTime();
+        Optional<ConfigManager.RefreshEntry> nextEntryOptional = configManager.peekNextRefreshEntry();
+        LocalDateTime nextRefreshTime = nextEntryOptional.map(ConfigManager.RefreshEntry::getTime).orElse(null);
+
+        // 只为未来的刷新事件更新倒计时
+        if (nextRefreshTime != null && nextRefreshTime.isBefore(LocalDateTime.now(configManager.getZoneId()))) {
+            nextRefreshTime = null; // 如果下一个事件已过期，则不显示倒计时
+        }
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             updatePlayerEndBar(player, nextRefreshTime);
@@ -107,8 +113,13 @@ public class EndResetScheduler implements Listener {
     private void updatePlayerEndBarStatus(Player player) {
         if (player == null || !player.isOnline())
             return;
-        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshTimes();
-        LocalDateTime nextRefreshTime = futureRefreshEntries.isEmpty() ? null : futureRefreshEntries.get(0).getTime();
+        Optional<ConfigManager.RefreshEntry> nextEntryOptional = configManager.peekNextRefreshEntry();
+        LocalDateTime nextRefreshTime = nextEntryOptional.map(ConfigManager.RefreshEntry::getTime).orElse(null);
+
+        // 只为未来的刷新事件更新倒计时
+        if (nextRefreshTime != null && nextRefreshTime.isBefore(LocalDateTime.now(configManager.getZoneId()))) {
+            nextRefreshTime = null; // 如果下一个事件已过期，则不显示倒计时
+        }
         updatePlayerEndBar(player, nextRefreshTime);
     }
 
@@ -172,32 +183,43 @@ public class EndResetScheduler implements Listener {
     }
 
     private void checkAndResetEnd() {
-        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshTimes();
-        if (futureRefreshEntries.isEmpty()) {
-            return; // 没有计划的重置
+        Optional<ConfigManager.RefreshEntry> nextEntryOptional = configManager.peekNextRefreshEntry();
+        if (nextEntryOptional.isEmpty()) {
+            return; // 没有配置的刷新事件
         }
 
+        ConfigManager.RefreshEntry nextEntry = nextEntryOptional.get();
+        LocalDateTime nextResetTime = nextEntry.getTime();
         ZoneId zoneId = configManager.getZoneId();
         LocalDateTime now = LocalDateTime.now(zoneId);
-        // 获取下一个 RefreshEntry 的时间
-        LocalDateTime nextResetTime = futureRefreshEntries.get(0).getTime();
 
+        // 检查这个最早的事件是否已经到了或过去了
         if (!now.isBefore(nextResetTime)) {
-            // 到达重置时间
-            plugin.getLogger().info("已到达计划的末地重置时间 (" + nextResetTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ")。正在重置末地...");
+            plugin.getLogger().info("检测到末地重置时间已到或已过: " + nextResetTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + " (当前时间: " + now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ")");
+            plugin.getLogger().info("正在重置末地...");
             resetEndWorld();
-            // 刷新配置，这将重新加载所有条目，包括过去的和未来的，并按时间排序
-            // 这也意味着当前的 nextResetTime 对应的条目会变成过去式条目
-            configManager.loadRefreshEntries(); // 使用 loadRefreshEntries 来确保所有数据被正确处理和持久化
 
-            // 重置和配置更新后，强制更新（新）末地中玩家的 BossBar。
-            Bukkit.getScheduler().runTask(plugin, () -> { // 在下一个 tick 运行以确保世界可用
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (player != null && player.isOnline()) {
-                        updatePlayerEndBarStatus(player); // 这会根据玩家所在世界决定是否显示
-                    }
-                }
-            });
+            // 从配置中移除这个已处理的刷新条目
+            // 注意：这里我们假设 resetEndWorld() 成功执行。
+            // 如果 resetEndWorld() 可能失败，并且我们不希望移除条目，则需要更复杂的逻辑。
+            // 目前，我们假定一旦时间到达，就尝试重置并移除该条目。
+            // 如果希望保留已处理的条目作为历史记录（例如，用于奖励系统），
+            // 则不应在此处移除，而是依赖 loadRefreshEntries() 来处理其状态（例如，它会变成过去式条目）。
+            // 考虑到 loadRefreshEntries 会重新加载并保存所有条目，包括过去的，
+            // 我们不需要手动移除。loadRefreshEntries 会在 resetEndWorld 之后被调用（如果需要的话，或者通过 reloadSchedule）。
+            // 在当前逻辑中，resetEndWorld 之后会调用 configManager.loadRefreshEntries()，
+            // 这会将此条目标记为过去，并在下次 peekNextRefreshEntry 时获取下一个。
+
+            // 为了确保配置状态是最新的，并且 BossBar 等能正确反映下一个（如果存在）刷新时间，
+            // 我们应该在重置后重新加载配置和调度。
+            // PluginCommands 中的 reload 命令调用了 configManager.loadRefreshEntries() 和 endResetScheduler.reloadSchedule()。
+            // 手动刷新命令 (refreshnow) 也是如此。
+            // 因此，在自动刷新后，我们也应该这样做。
+            configManager.loadRefreshEntries(); // 重新加载配置，将当前事件标记为过去
+            reloadSchedule(); // 重新加载调度，这将更新 BossBar 并设置下一个检查
+
+            plugin.getLogger().info("末地已自动重置，并已重新加载调度。");
+
         }
     }
 
