@@ -400,6 +400,30 @@ public class ConfigManager {
     }
 
     /**
+     * 添加一个新的末地刷新条目。
+     * 如果已存在具有相同时间的条目，则不会添加。
+     * 添加后会自动保存到配置文件。
+     * @param entryToAdd 要添加的 {@link RefreshEntry}。
+     * @return 如果成功添加则返回 true，如果时间已存在则返回 false。
+     */
+    public boolean addRefreshEntry(RefreshEntry entryToAdd) {
+        if (entryToAdd == null || entryToAdd.getTime() == null) {
+            plugin.getLogger().warning("尝试添加空的 RefreshEntry 或时间为空的条目。");
+            return false;
+        }
+        // 检查是否已存在具有相同时间的条目
+        if (refreshTimes.stream().anyMatch(entry -> entry.getTime().equals(entryToAdd.getTime()))) {
+            plugin.getLogger().info("尝试添加已存在的刷新时间的条目: " + DATE_TIME_FORMATTER.format(entryToAdd.getTime()));
+            return false; // 时间已存在
+        }
+        refreshTimes.add(entryToAdd);
+        refreshTimes.sort(Comparator.comparing(RefreshEntry::getTime)); // 按时间排序
+        saveRefreshTimesToConfig(); // 保存到配置文件
+        plugin.getLogger().info("成功添加新的刷新条目: " + DATE_TIME_FORMATTER.format(entryToAdd.getTime()));
+        return true;
+    }
+
+    /**
      * 移除一个指定的末地刷新时间。
      * 如果成功移除，会自动保存到配置文件。
      * @param timeToRemove 要移除的 {@link LocalDateTime}。
