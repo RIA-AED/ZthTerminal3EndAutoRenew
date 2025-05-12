@@ -8,6 +8,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
+import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -53,6 +54,12 @@ public class DragonEggListener implements Listener {
         ItemMeta itemMeta = itemStack.getItemMeta();
         // 确保是原始龙蛋（没有被修改过 Lore 的）
         if (itemMeta == null || !isOriginalDragonEgg(itemMeta)) {
+            return;
+        }
+
+        // 检查末影龙是否存活
+        if (!player.getWorld().getEntitiesByClass(EnderDragon.class).isEmpty()) {
+            plugin.getLogger().info("玩家 " + player.getName() + " 尝试拾取龙蛋，但末影龙仍存活");
             return;
         }
 
