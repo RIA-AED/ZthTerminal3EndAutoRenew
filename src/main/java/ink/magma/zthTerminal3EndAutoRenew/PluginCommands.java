@@ -188,11 +188,12 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
                 .append(Component.text(" - 移除刷新时间", NamedTextColor.GRAY))
                 .append(Component.newline())
                 .append(Component.text("/" + baseCommand + " editreward <时间戳> <add|remove|list> [索引]", NamedTextColor.AQUA)
-                        .hoverEvent(HoverEvent.showText(Component.text("编辑指定刷新事件的奖励物品\n" +
-                                "时间戳格式: yyyy-MM-dd HH:mm:ss\n" +
-                                "add: 添加手持物品\n" +
-                                "remove <索引>: 移除指定索引的物品\n" +
-                                "list: 列出奖励物品"))))
+                        .hoverEvent(HoverEvent.showText(Component.text("""
+                                编辑指定刷新事件的奖励物品
+                                时间戳格式: yyyy-MM-dd HH:mm:ss
+                                add: 添加手持物品
+                                remove <索引>: 移除指定索引的物品
+                                list: 列出奖励物品"""))))
                .append(Component.text(" - 编辑奖励物品", NamedTextColor.GRAY))
                .append(Component.newline())
                .append(Component.text("/" + baseCommand + " claimreward", NamedTextColor.AQUA)
@@ -304,7 +305,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
    }
 
    private boolean handleClaimReward(CommandSender sender) {
-       if (!(sender instanceof Player)) {
+       if (!(sender instanceof Player player)) {
            sender.sendMessage(Component.text("此命令只能由玩家执行。", NamedTextColor.RED));
            return true;
        }
@@ -313,13 +314,12 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
            return true;
        }
 
-       Player player = (Player) sender;
        UUID playerUuid = player.getUniqueId();
        LocalDateTime now = LocalDateTime.now(configManager.getZoneId());
 
        // 1. 确定“当前期”的 RefreshEntry
        List<ConfigManager.RefreshEntry> allEntries = new ArrayList<>(configManager.getAllRefreshEntries());
-       Collections.sort(allEntries, Comparator.comparing(ConfigManager.RefreshEntry::getTime).reversed()); // 按时间降序
+       allEntries.sort(Comparator.comparing(ConfigManager.RefreshEntry::getTime).reversed()); // 按时间降序
 
        Optional<ConfigManager.RefreshEntry> currentEntryOptional = allEntries.stream()
                .filter(entry -> !entry.getTime().isAfter(now)) // 时间已过去或正好是现在
@@ -363,7 +363,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
            player.sendMessage(Component.text("你的背包已满！部分奖励物品掉落在你的脚下：", NamedTextColor.RED));
            for (ItemStack dropItem : notAddedItems) {
                player.getWorld().dropItemNaturally(player.getLocation(), dropItem);
-               player.sendMessage(Component.text("- " + dropItem.getType().toString() + " x" + dropItem.getAmount(), NamedTextColor.GRAY));
+               player.sendMessage(Component.text("- " + dropItem.getType() + " x" + dropItem.getAmount(), NamedTextColor.GRAY));
            }
        }
 
@@ -414,11 +414,10 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
 
         switch (operation) {
             case "add":
-                if (!(sender instanceof Player)) {
+                if (!(sender instanceof Player player)) {
                     sender.sendMessage(Component.text("此命令只能由玩家执行。", NamedTextColor.RED));
                     return true;
                 }
-                Player player = (Player) sender;
                 ItemStack itemInHand = player.getInventory().getItemInMainHand();
 
                 if (itemInHand.getType() == Material.AIR || itemInHand.getAmount() == 0) {
@@ -453,7 +452,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
                 ItemStack removedItem = rewardItemsRemove.remove(indexToRemove);
                 configManager.saveRefreshTimesToConfig(); // 保存配置
                 // 修改反馈消息，不再使用 getItemDisplayName
-                sender.sendMessage(Component.text("已从 " + timestampStr + " 的奖励列表中移除物品: " + removedItem.getType().toString() + " x" + removedItem.getAmount(), NamedTextColor.GREEN));
+                sender.sendMessage(Component.text("已从 " + timestampStr + " 的奖励列表中移除物品: " + removedItem.getType() + " x" + removedItem.getAmount(), NamedTextColor.GREEN));
                 break;
 
             case "list":
@@ -467,7 +466,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
                 for (int i = 0; i < rewardItemsList.size(); i++) {
                     ItemStack item = rewardItemsList.get(i);
                     // 使用 ItemStack#asHoverEvent()
-                    Component itemText = Component.text("- [" + i + "] " + item.getType().toString() + " x" + item.getAmount(), NamedTextColor.AQUA)
+                    Component itemText = Component.text("- [" + i + "] " + item.getType() + " x" + item.getAmount(), NamedTextColor.AQUA)
                             .hoverEvent(item.asHoverEvent()); // 使用 ItemStack#asHoverEvent()
 
                     Component removeButton = Component.text(" [移除]", NamedTextColor.RED, TextDecoration.UNDERLINED)
@@ -510,7 +509,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
             if (sender.hasPermission("zth.endrenew.refreshnow")) {
                 completions.add("refreshnow");
             }
-        } else if (args.length >= 2) {
+        } else {
             String subCommand = args[0].toLowerCase();
             if (subCommand.equals("add") || subCommand.equals("remove")) { // 处理 add 和 remove 时间的 Tab 补全
                 if (sender.hasPermission("zth.endrenew.manage")) {

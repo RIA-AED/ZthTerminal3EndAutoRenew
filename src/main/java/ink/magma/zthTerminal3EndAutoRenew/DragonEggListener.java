@@ -1,16 +1,13 @@
 package ink.magma.zthTerminal3EndAutoRenew;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Optional; // 新增导入
-
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
-// BossBar related imports are no longer needed here directly for creation
-import org.bukkit.boss.BarColor; // Keep for passing as parameter
-import org.bukkit.boss.BarStyle; // Keep for passing as parameter
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,9 +17,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Optional;
 
 public class DragonEggListener implements Listener {
     private final JavaPlugin plugin;
@@ -63,12 +61,6 @@ public class DragonEggListener implements Listener {
 
         if (currentEntryOptional.isEmpty()) {
             plugin.getLogger().info("龙蛋被拾取，但未找到当前刷新期条目，不记录拾取者。玩家: " + player.getName());
-            // 如果没有当前期条目，可以选择不给龙蛋添加 Lore，也不广播，或者执行其他逻辑
-            // 为保持原有逻辑的最小改动，这里我们依然允许添加 Lore 和广播，但不会记录到 config
-            // 如果需要严格控制，则在此处 return
-            // addLoreToDragonEgg(itemMeta, player); // 如果需要，可以取消注释这两行
-            // itemStack.setItemMeta(itemMeta);
-            // announceDragonEggWinner(player);
             return; // 明确：如果找不到当前期，则不记录，也不执行后续操作
         }
 
@@ -98,7 +90,6 @@ public class DragonEggListener implements Listener {
             // 如果玩家拾取的是一个已经有 Lore 的龙蛋（非原始），isOriginalDragonEgg 会处理
             // 如果玩家拾取的是原始龙蛋，但记录已存在，则不应添加 Lore 和广播
             // 因此，如果记录已存在，我们直接返回，不执行 addLore 和 announce
-            return;
         }
     }
 

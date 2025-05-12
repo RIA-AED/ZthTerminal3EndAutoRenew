@@ -1,20 +1,14 @@
 package ink.magma.zthTerminal3EndAutoRenew;
 
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.inventory.ItemStack; // 新增导入
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional; // 新增导入
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -34,8 +28,9 @@ public class ConfigManager {
 
         /**
          * 构造函数。
-         * @param uuid 玩家UUID。
-         * @param name 玩家名称。
+         *
+         * @param uuid       玩家UUID。
+         * @param name       玩家名称。
          * @param pickupTime 拾取时间。
          */
         public DragonEggOwner(UUID uuid, String name, LocalDateTime pickupTime) {
@@ -47,18 +42,37 @@ public class ConfigManager {
         /**
          * 用于从配置加载的默认构造函数。
          */
-        public DragonEggOwner() {}
+        public DragonEggOwner() {
+        }
 
         // Getter 和 Setter 方法
-        public UUID getUuid() { return uuid; }
-        public void setUuid(UUID uuid) { this.uuid = uuid; }
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
-        public LocalDateTime getPickupTime() { return pickupTime; }
-        public void setPickupTime(LocalDateTime pickupTime) { this.pickupTime = pickupTime; }
+        public UUID getUuid() {
+            return uuid;
+        }
+
+        public void setUuid(UUID uuid) {
+            this.uuid = uuid;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public LocalDateTime getPickupTime() {
+            return pickupTime;
+        }
+
+        public void setPickupTime(LocalDateTime pickupTime) {
+            this.pickupTime = pickupTime;
+        }
 
         /**
          * 将 DragonEggOwner 对象转换为 Map，用于保存到配置文件。
+         *
          * @return 包含此对象数据的 Map。
          */
         public Map<String, Object> toMap() {
@@ -81,10 +95,11 @@ public class ConfigManager {
 
         /**
          * 构造函数。
-         * @param time 刷新时间。
-         * @param dragonEggOwner 龙蛋获得者信息。
+         *
+         * @param time                 刷新时间。
+         * @param dragonEggOwner       龙蛋获得者信息。
          * @param rewardClaimedPlayers 已领取奖励的玩家列表。
-         * @param rewardItems 奖励物品列表。
+         * @param rewardItems          奖励物品列表。
          */
         public RefreshEntry(LocalDateTime time, DragonEggOwner dragonEggOwner, List<String> rewardClaimedPlayers, List<ItemStack> rewardItems) {
             this.time = time;
@@ -103,17 +118,41 @@ public class ConfigManager {
         }
 
         // Getter 和 Setter 方法
-        public LocalDateTime getTime() { return time; }
-        public void setTime(LocalDateTime time) { this.time = time; }
-        public DragonEggOwner getDragonEggOwner() { return dragonEggOwner; }
-        public void setDragonEggOwner(DragonEggOwner dragonEggOwner) { this.dragonEggOwner = dragonEggOwner; }
-        public List<String> getRewardClaimedPlayers() { return rewardClaimedPlayers; }
-        public void setRewardClaimedPlayers(List<String> rewardClaimedPlayers) { this.rewardClaimedPlayers = rewardClaimedPlayers; }
-        public List<ItemStack> getRewardItems() { return rewardItems; } // Getter for rewardItems
-        public void setRewardItems(List<ItemStack> rewardItems) { this.rewardItems = rewardItems; } // Setter for rewardItems
+        public LocalDateTime getTime() {
+            return time;
+        }
+
+        public void setTime(LocalDateTime time) {
+            this.time = time;
+        }
+
+        public DragonEggOwner getDragonEggOwner() {
+            return dragonEggOwner;
+        }
+
+        public void setDragonEggOwner(DragonEggOwner dragonEggOwner) {
+            this.dragonEggOwner = dragonEggOwner;
+        }
+
+        public List<String> getRewardClaimedPlayers() {
+            return rewardClaimedPlayers;
+        }
+
+        public void setRewardClaimedPlayers(List<String> rewardClaimedPlayers) {
+            this.rewardClaimedPlayers = rewardClaimedPlayers;
+        }
+
+        public List<ItemStack> getRewardItems() {
+            return rewardItems;
+        } // Getter for rewardItems
+
+        public void setRewardItems(List<ItemStack> rewardItems) {
+            this.rewardItems = rewardItems;
+        } // Setter for rewardItems
 
         /**
          * 将 RefreshEntry 对象转换为 Map，用于保存到配置文件。
+         *
          * @return 包含此对象数据的 Map。
          */
         public Map<String, Object> toMap() {
@@ -154,6 +193,7 @@ public class ConfigManager {
 
     /**
      * ConfigManager 的构造函数。
+     *
      * @param plugin 插件主类的实例。
      */
     public ConfigManager(JavaPlugin plugin) {
@@ -230,24 +270,19 @@ public class ConfigManager {
      * 注意：此方法不再根据 {@code now} 参数过滤掉过去的条目；它会尝试解析所有有效的条目。
      * {@code now} 参数保留，以备将来可能的其他基于当前时间的校验逻辑（例如，某个字段只对未来条目有效）。
      * </p>
+     *
      * @param entryMap 包含 {@code RefreshEntry} 数据的 Map 对象。
-     * @param now 当前时间。虽然不再用于过滤过去条目，但保留以备将来使用。
+     * @param now      当前时间。虽然不再用于过滤过去条目，但保留以备将来使用。
      * @return 解析后的 {@code RefreshEntry} 对象。如果条目在结构上无效（例如缺少必要的时间字段）或解析过程中发生严重错误，则返回 {@code null}。
      */
     private RefreshEntry parseRefreshEntryFromMap(Map<?, ?> entryMap, LocalDateTime now) {
         try {
             String timeStr = (String) entryMap.get("time");
             if (timeStr == null || timeStr.isEmpty()) {
-                plugin.getLogger().warning("Refresh entry is missing 'time' field: " + entryMap.toString());
+                plugin.getLogger().warning("Refresh entry is missing 'time' field: " + entryMap);
                 return null;
             }
             LocalDateTime ldt = LocalDateTime.parse(timeStr, DATE_TIME_FORMATTER);
-
-            // 不再此处过滤过去的时间，加载所有条目
-            // 保留 now 参数，以备将来可能的其他逻辑（例如，如果某个字段只对未来条目有效）
-            // if (ldt.isBefore(now) || ldt.isEqual(now)) {
-            //     return null;
-            // }
 
             RefreshEntry refreshEntry = new RefreshEntry();
             refreshEntry.setTime(ldt);
@@ -285,9 +320,8 @@ public class ConfigManager {
 
             // 解析 reward-claimed-players
             Object claimedPlayersObj = entryMap.get("reward-claimed-players");
-            if (claimedPlayersObj instanceof List) {
+            if (claimedPlayersObj instanceof List<?> rawList) {
                 // 进行类型安全的转换
-                List<?> rawList = (List<?>) claimedPlayersObj;
                 List<String> claimedPlayers = new ArrayList<>();
                 for (Object item : rawList) {
                     if (item instanceof String) {
@@ -307,8 +341,7 @@ public class ConfigManager {
             // 解析 reward-items
             Object rewardItemsObj = entryMap.get("reward-items");
             List<ItemStack> parsedRewardItems = new ArrayList<>();
-            if (rewardItemsObj instanceof List) {
-                List<?> rawItemList = (List<?>) rewardItemsObj;
+            if (rewardItemsObj instanceof List<?> rawItemList) {
                 for (Object itemMapObj : rawItemList) {
                     if (itemMapObj instanceof Map) {
                         try {
@@ -318,9 +351,9 @@ public class ConfigManager {
                             ItemStack itemStack = ItemStack.deserialize(itemMap);
                             parsedRewardItems.add(itemStack);
                         } catch (ClassCastException cce) {
-                            plugin.getLogger().warning("Error deserializing reward item due to invalid map structure for entry: " + timeStr + ". Item map: " + itemMapObj.toString() + " - " + cce.getMessage());
+                            plugin.getLogger().warning("Error deserializing reward item due to invalid map structure for entry: " + timeStr + ". Item map: " + itemMapObj + " - " + cce.getMessage());
                         } catch (Exception e) {
-                            plugin.getLogger().warning("Error deserializing reward item for entry: " + timeStr + ". Item map: " + itemMapObj.toString() + " - " + e.getMessage());
+                            plugin.getLogger().warning("Error deserializing reward item for entry: " + timeStr + ". Item map: " + itemMapObj + " - " + e.getMessage());
                         }
                     } else {
                         plugin.getLogger().warning("Non-map element found in reward-items list for entry: " + timeStr + ". Element: " + itemMapObj.toString());
@@ -346,6 +379,7 @@ public class ConfigManager {
 
     /**
      * 获取配置中定义的时区ID。
+     *
      * @return 时区ID。
      */
     public ZoneId getZoneId() {
@@ -354,19 +388,20 @@ public class ConfigManager {
 
     /**
      * 获取所有未来的末地刷新条目列表。
+     *
      * @return 一个不可修改的、仅包含未来 {@link RefreshEntry} 的列表。
      */
     public List<RefreshEntry> getFutureRefreshTimes() {
         LocalDateTime now = LocalDateTime.now(zoneId);
-        List<RefreshEntry> futureEntries = refreshTimes.stream()
+        return refreshTimes.stream()
                 .filter(entry -> entry.getTime().isAfter(now))
-                .collect(Collectors.toList());
-        return Collections.unmodifiableList(futureEntries);
+                .toList();
     }
 
     /**
      * 以字符串列表的形式列出所有未来的刷新时间。
      * 主要用于命令反馈或展示。
+     *
      * @return 格式化后的未来刷新时间字符串列表 (yyyy-MM-dd HH:mm:ss)。
      */
     public List<String> listRefreshTimes() {
@@ -387,6 +422,7 @@ public class ConfigManager {
      * 添加一个新的末地刷新时间。
      * 如果该时间已存在，则不会添加。
      * 添加后会自动保存到配置文件。
+     *
      * @param timeToAdd 要添加的 {@link LocalDateTime}。
      * @return 如果成功添加则返回 true，如果时间已存在则返回 false。
      */
@@ -409,6 +445,7 @@ public class ConfigManager {
      * 添加一个新的末地刷新条目。
      * 如果已存在具有相同时间的条目，则不会添加。
      * 添加后会自动保存到配置文件。
+     *
      * @param entryToAdd 要添加的 {@link RefreshEntry}。
      * @return 如果成功添加则返回 true，如果时间已存在则返回 false。
      */
@@ -432,6 +469,7 @@ public class ConfigManager {
     /**
      * 移除一个指定的末地刷新时间。
      * 如果成功移除，会自动保存到配置文件。
+     *
      * @param timeToRemove 要移除的 {@link LocalDateTime}。
      * @return 如果成功移除则返回 true，否则返回 false。
      */
@@ -460,6 +498,7 @@ public class ConfigManager {
 
     /**
      * 将 {@link Duration} 对象格式化为易读的字符串，如 "X天Y小时Z分钟" 或 "N秒"。
+     *
      * @param dur 要格式化的 {@link Duration} 对象。
      * @return 格式化后的时间字符串。如果持续时间为负，则返回 "已过期"。
      */
@@ -494,39 +533,22 @@ public class ConfigManager {
                 sb.append(minutes).append("分钟");
             }
             // 如果天、小时、分钟都为0，或者有剩余秒数且总时间大于等于60秒，则显示秒
-            if ((days == 0 && hours == 0 && minutes == 0) || (seconds > 0 && totalSeconds >= 60 && sb.length() > 0) ) {
-                 // 仅当没有天/小时/分钟，或者有天/小时/分钟且仍有秒数时，才追加秒
-                if (sb.length() == 0 || seconds > 0) { // 避免在 "X分钟" 后再加 "0秒"
-                    if (sb.length() > 0 && seconds > 0) sb.append(seconds).append("秒"); // 如果已有天/时/分，且有秒，则追加
-                    else if (sb.length() == 0) sb.append(seconds).append("秒"); // 如果没有天/时/分，则显示秒
+            if (days == 0 && hours == 0 && minutes == 0 || seconds > 0 && !sb.isEmpty()) {
+                // 仅当没有天/小时/分钟，或者有天/小时/分钟且仍有秒数时，才追加秒
+                if (sb.isEmpty() || seconds > 0) { // 避免在 "X分钟" 后再加 "0秒"
+                    // 如果没有天/时/分，则显示秒
+                    sb.append(seconds).append("秒"); // 如果已有天/时/分，且有秒，则追加
                 }
             }
-             // 如果构建器为空（例如，持续时间是0到59秒之间，但上面已处理），确保返回 "0秒" 或实际秒数
-            if (sb.length() == 0 && totalSeconds < 60 && totalSeconds > 0) {
-                return totalSeconds + "秒";
-            }
-            if (sb.length() == 0 && totalSeconds == 0) { // 再次检查0秒
-                return "0秒";
-            }
+            // 如果构建器为空（例如，持续时间是0到59秒之间，但上面已处理），确保返回 "0秒" 或实际秒数
 
             return sb.toString();
         }
     }
 
     /**
-     * 获取下一个（最早的）刷新条目，无论其是否已过期。
-     * @return Optional 包含下一个 RefreshEntry，如果列表为空则为空。
-     */
-    public Optional<RefreshEntry> peekNextRefreshEntry() {
-        if (refreshTimes.isEmpty()) {
-            return Optional.empty();
-        }
-        // refreshTimes 列表在加载和添加时已按时间升序排序
-        return Optional.of(refreshTimes.get(0));
-    }
-
-    /**
      * 根据时间查找特定的 RefreshEntry。
+     *
      * @param time 要查找的 LocalDateTime。
      * @return 包含 RefreshEntry 的 Optional，如果未找到则为空。
      */
@@ -538,24 +560,27 @@ public class ConfigManager {
 
     /**
      * 获取所有已配置的刷新条目（包括过去和未来的）。
+     *
      * @return 一个包含所有 RefreshEntry 的列表的不可修改副本。
      */
     public List<RefreshEntry> getAllRefreshEntries() {
-        return Collections.unmodifiableList(new ArrayList<>(refreshTimes)); // 返回副本以防外部修改
+        return List.copyOf(refreshTimes); // 返回副本以防外部修改
     }
 
     /**
      * 获取“当前期”的 RefreshEntry。
      * “当前期”定义为：从所有 RefreshEntry 中，筛选出 time 小于或等于当前时间的条目，
      * 按 time 降序排序，取第一个。
+     *
      * @return Optional 包装的当前 RefreshEntry，如果找不到则为空。
      */
     public Optional<RefreshEntry> getCurrentRefreshEntry() {
         LocalDateTime now = LocalDateTime.now(getZoneId());
+        // entry.time <= now
+        // 按 time 降序
         return refreshTimes.stream()
-                .filter(entry -> !entry.getTime().isAfter(now)) // entry.time <= now
-                .sorted(Comparator.comparing(RefreshEntry::getTime).reversed()) // 按 time 降序
-                .findFirst();
+                .filter(entry -> !entry.getTime().isAfter(now))
+                .max(Comparator.comparing(RefreshEntry::getTime));
     }
 
 
@@ -563,6 +588,7 @@ public class ConfigManager {
 
     /**
      * 检查是否启用了末地重置完成的广播。
+     *
      * @return 如果启用则返回 true，否则返回 false。
      */
     public boolean isBroadcastEndResetEnabled() {
@@ -571,6 +597,7 @@ public class ConfigManager {
 
     /**
      * 获取末地重置完成时广播的消息文本。
+     *
      * @return 广播消息文本。
      */
     public String getEndResetBroadcastMessageText() {

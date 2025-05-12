@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional; // 新增导入
+// 新增导入
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
@@ -133,7 +133,9 @@ public class EndResetScheduler implements Listener {
     private void updatePlayerEndBar(Player player, LocalDateTime nextRefreshTime) {
         if (player == null || !player.isOnline()) {
             // 确保离线玩家的 BossBar 被隐藏 (尽管 BossBarManager 内部可能已处理)
-            bossBarManager.hidePlayerBossBar(player, END_RESET_BAR_ID);
+            if (player != null) {
+                bossBarManager.hidePlayerBossBar(player, END_RESET_BAR_ID);
+            }
             return;
         }
 

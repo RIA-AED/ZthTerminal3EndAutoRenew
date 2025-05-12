@@ -31,7 +31,7 @@ public class PlayerRewardNotifierListener implements Listener {
     public void onEntityDeath(EntityDeathEvent event) {
         if (event.getEntity() instanceof EnderDragon && event.getEntity().getWorld().getEnvironment() == World.Environment.THE_END) {
             World endWorld = event.getEntity().getWorld();
-            if (!hasLivingEnderDragon(endWorld)) {
+            if (noLivingEnderDragon(endWorld)) {
                 Optional<ConfigManager.RefreshEntry> currentEntryOpt = configManager.getCurrentRefreshEntry();
                 if (currentEntryOpt.isPresent()) {
                     ConfigManager.RefreshEntry currentEntry = currentEntryOpt.get();
@@ -49,7 +49,7 @@ public class PlayerRewardNotifierListener implements Listener {
     public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
         if (player.getWorld().getEnvironment() == World.Environment.THE_END) {
-            if (!hasLivingEnderDragon(player.getWorld())) {
+            if (noLivingEnderDragon(player.getWorld())) {
                 Optional<ConfigManager.RefreshEntry> currentEntryOpt = configManager.getCurrentRefreshEntry();
                 if (currentEntryOpt.isPresent()) {
                     ConfigManager.RefreshEntry currentEntry = currentEntryOpt.get();
@@ -65,7 +65,7 @@ public class PlayerRewardNotifierListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         if (player.getWorld().getEnvironment() == World.Environment.THE_END) {
-            if (!hasLivingEnderDragon(player.getWorld())) {
+            if (noLivingEnderDragon(player.getWorld())) {
                 Optional<ConfigManager.RefreshEntry> currentEntryOpt = configManager.getCurrentRefreshEntry();
                 if (currentEntryOpt.isPresent()) {
                     ConfigManager.RefreshEntry currentEntry = currentEntryOpt.get();
@@ -88,10 +88,10 @@ public class PlayerRewardNotifierListener implements Listener {
         }
     }
 
-    private boolean hasLivingEnderDragon(World endWorld) {
+    private boolean noLivingEnderDragon(World endWorld) {
         if (endWorld.getEnvironment() != World.Environment.THE_END) {
-            return false; // 不是末地，直接返回false或根据需要抛出异常
+            return true; // 不是末地，直接返回false或根据需要抛出异常
         }
-        return !endWorld.getEntitiesByClass(EnderDragon.class).isEmpty();
+        return endWorld.getEntitiesByClass(EnderDragon.class).isEmpty();
     }
 }
