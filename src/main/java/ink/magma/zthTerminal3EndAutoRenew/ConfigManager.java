@@ -1,6 +1,7 @@
 package ink.magma.zthTerminal3EndAutoRenew;
 
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.inventory.ItemStack; // 新增导入
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.time.Duration;
@@ -75,17 +76,20 @@ public class ConfigManager {
         public LocalDateTime time; // 刷新时间
         public DragonEggOwner dragonEggOwner; // 龙蛋获得者信息
         public List<String> rewardClaimedPlayers; // 已领取本次刷新奖励的玩家UUID列表
+        public List<ItemStack> rewardItems; // 新增：奖励物品列表
 
         /**
          * 构造函数。
          * @param time 刷新时间。
          * @param dragonEggOwner 龙蛋获得者信息。
          * @param rewardClaimedPlayers 已领取奖励的玩家列表。
+         * @param rewardItems 奖励物品列表。
          */
-        public RefreshEntry(LocalDateTime time, DragonEggOwner dragonEggOwner, List<String> rewardClaimedPlayers) {
+        public RefreshEntry(LocalDateTime time, DragonEggOwner dragonEggOwner, List<String> rewardClaimedPlayers, List<ItemStack> rewardItems) {
             this.time = time;
             this.dragonEggOwner = dragonEggOwner;
             this.rewardClaimedPlayers = rewardClaimedPlayers != null ? new ArrayList<>(rewardClaimedPlayers) : new ArrayList<>();
+            this.rewardItems = rewardItems != null ? new ArrayList<>(rewardItems) : new ArrayList<>(); // 初始化 rewardItems
         }
 
         /**
@@ -94,6 +98,7 @@ public class ConfigManager {
         public RefreshEntry() {
             this.dragonEggOwner = new DragonEggOwner(); // 初始化龙蛋获得者
             this.rewardClaimedPlayers = new ArrayList<>(); // 初始化奖励领取列表
+            this.rewardItems = new ArrayList<>(); // 初始化 rewardItems 为空列表
         }
 
         // Getter 和 Setter 方法
@@ -103,6 +108,8 @@ public class ConfigManager {
         public void setDragonEggOwner(DragonEggOwner dragonEggOwner) { this.dragonEggOwner = dragonEggOwner; }
         public List<String> getRewardClaimedPlayers() { return rewardClaimedPlayers; }
         public void setRewardClaimedPlayers(List<String> rewardClaimedPlayers) { this.rewardClaimedPlayers = rewardClaimedPlayers; }
+        public List<ItemStack> getRewardItems() { return rewardItems; } // Getter for rewardItems
+        public void setRewardItems(List<ItemStack> rewardItems) { this.rewardItems = rewardItems; } // Setter for rewardItems
 
         /**
          * 将 RefreshEntry 对象转换为 Map，用于保存到配置文件。
@@ -113,6 +120,19 @@ public class ConfigManager {
             map.put("time", time.format(DATE_TIME_FORMATTER));
             map.put("dragon-egg-owner", dragonEggOwner.toMap());
             map.put("reward-claimed-players", rewardClaimedPlayers);
+
+            // 序列化 rewardItems
+            if (rewardItems != null) {
+                List<Map<String, Object>> serializedItems = new ArrayList<>();
+                for (ItemStack item : rewardItems) {
+                    if (item != null) {
+                        serializedItems.add(item.serialize());
+                    }
+                }
+                map.put("reward-items", serializedItems);
+            } else {
+                map.put("reward-items", new ArrayList<>()); // 如果为null，则存入空列表
+            }
             return map;
         }
     }
@@ -283,6 +303,37 @@ public class ConfigManager {
                 refreshEntry.setRewardClaimedPlayers(new ArrayList<>()); // 如果字段不存在，也使用空列表
             }
 
+            // 解析 reward-items
+            Object rewardItemsObj = entryMap.get("reward-items");
+            List<ItemStack> parsedRewardItems = new ArrayList<>();
+            if (rewardItemsObj instanceof List) {
+                List<?> rawItemList = (List<?>) rewardItemsObj;
+                for (Object itemMapObj : rawItemList) {
+                    if (itemMapObj instanceof Map) {
+                        try {
+                            // 需要确保 Map 的键是 String 类型，值是 Object 类型
+                            @SuppressWarnings("unchecked") // Bukkit API 需要这个转换
+                            Map<String, Object> itemMap = (Map<String, Object>) itemMapObj;
+                            ItemStack itemStack = ItemStack.deserialize(itemMap);
+                            parsedRewardItems.add(itemStack);
+                        } catch (ClassCastException cce) {
+                            plugin.getLogger().warning("Error deserializing reward item due to invalid map structure for entry: " + timeStr + ". Item map: " + itemMapObj.toString() + " - " + cce.getMessage());
+                        } catch (Exception e) {
+                            plugin.getLogger().warning("Error deserializing reward item for entry: " + timeStr + ". Item map: " + itemMapObj.toString() + " - " + e.getMessage());
+                        }
+                    } else {
+                        plugin.getLogger().warning("Non-map element found in reward-items list for entry: " + timeStr + ". Element: " + itemMapObj.toString());
+                    }
+                }
+                refreshEntry.setRewardItems(parsedRewardItems);
+            } else if (rewardItemsObj != null) {
+                plugin.getLogger().warning("'reward-items' is not a list for entry: " + timeStr + ". Found: " + rewardItemsObj.getClass().getName() + ". Defaulting to empty list.");
+                refreshEntry.setRewardItems(new ArrayList<>()); // 默认为空列表
+            } else {
+                // plugin.getLogger().info("'reward-items' field not found for entry: " + timeStr + ". Defaulting to empty list."); // 可以选择不记录，因为这是可选字段
+                refreshEntry.setRewardItems(new ArrayList<>()); // 如果字段不存在，默认为空列表
+            }
+
             return refreshEntry;
 
         } catch (Exception e) {
@@ -338,8 +389,8 @@ public class ConfigManager {
             plugin.getLogger().info("尝试添加已存在的刷新时间: " + DATE_TIME_FORMATTER.format(timeToAdd));
             return false; // 时间已存在
         }
-        // 创建一个新的 RefreshEntry，龙蛋信息和奖励领取者列表为空
-        RefreshEntry newEntry = new RefreshEntry(timeToAdd, new DragonEggOwner(), new ArrayList<>());
+        // 创建一个新的 RefreshEntry，龙蛋信息、奖励领取者列表和奖励物品列表为空
+        RefreshEntry newEntry = new RefreshEntry(timeToAdd, new DragonEggOwner(), new ArrayList<>(), new ArrayList<>());
         refreshTimes.add(newEntry);
         refreshTimes.sort(Comparator.comparing(RefreshEntry::getTime)); // 按时间排序
         saveRefreshTimesToConfig(); // 保存到配置文件
