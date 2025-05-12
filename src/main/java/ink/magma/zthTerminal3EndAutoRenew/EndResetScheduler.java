@@ -183,43 +183,36 @@ public class EndResetScheduler implements Listener {
     }
 
     private void checkAndResetEnd() {
-        Optional<ConfigManager.RefreshEntry> nextEntryOptional = configManager.peekNextRefreshEntry();
-        if (nextEntryOptional.isEmpty()) {
-            return; // 没有配置的刷新事件
+        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshTimes();
+        if (futureRefreshEntries.isEmpty()) {
+            return; // 没有计划的未来重置
         }
 
-        ConfigManager.RefreshEntry nextEntry = nextEntryOptional.get();
+        ConfigManager.RefreshEntry nextEntry = futureRefreshEntries.get(0); // 获取最早的未来刷新事件
         LocalDateTime nextResetTime = nextEntry.getTime();
         ZoneId zoneId = configManager.getZoneId();
         LocalDateTime now = LocalDateTime.now(zoneId);
 
-        // 检查这个最早的事件是否已经到了或过去了
+        // 检查这个未来的事件是否已经到了或过去了
+        // （理论上，由于 getFutureRefreshTimes 的过滤，nextResetTime 总是未来的，
+        //  但为了保险起见，以及处理可能的极小时间差，我们仍然检查）
         if (!now.isBefore(nextResetTime)) {
-            plugin.getLogger().info("检测到末地重置时间已到或已过: " + nextResetTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + " (当前时间: " + now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ")");
+            plugin.getLogger().info("已到达计划的末地重置时间: " + nextResetTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + " (当前时间: " + now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ")");
             plugin.getLogger().info("正在重置末地...");
             resetEndWorld();
 
-            // 从配置中移除这个已处理的刷新条目
-            // 注意：这里我们假设 resetEndWorld() 成功执行。
-            // 如果 resetEndWorld() 可能失败，并且我们不希望移除条目，则需要更复杂的逻辑。
-            // 目前，我们假定一旦时间到达，就尝试重置并移除该条目。
-            // 如果希望保留已处理的条目作为历史记录（例如，用于奖励系统），
-            // 则不应在此处移除，而是依赖 loadRefreshEntries() 来处理其状态（例如，它会变成过去式条目）。
-            // 考虑到 loadRefreshEntries 会重新加载并保存所有条目，包括过去的，
-            // 我们不需要手动移除。loadRefreshEntries 会在 resetEndWorld 之后被调用（如果需要的话，或者通过 reloadSchedule）。
-            // 在当前逻辑中，resetEndWorld 之后会调用 configManager.loadRefreshEntries()，
-            // 这会将此条目标记为过去，并在下次 peekNextRefreshEntry 时获取下一个。
+            // 重置完成后，重新加载配置。
+            // 这会将刚刚处理的事件标记为“已过去”，
+            // 并且 getFutureRefreshTimes() 在下次调用时会返回下一个真正的未来事件。
+            configManager.loadRefreshEntries();
 
-            // 为了确保配置状态是最新的，并且 BossBar 等能正确反映下一个（如果存在）刷新时间，
-            // 我们应该在重置后重新加载配置和调度。
-            // PluginCommands 中的 reload 命令调用了 configManager.loadRefreshEntries() 和 endResetScheduler.reloadSchedule()。
-            // 手动刷新命令 (refreshnow) 也是如此。
-            // 因此，在自动刷新后，我们也应该这样做。
-            configManager.loadRefreshEntries(); // 重新加载配置，将当前事件标记为过去
-            reloadSchedule(); // 重新加载调度，这将更新 BossBar 并设置下一个检查
+            // 重新加载调度器任务，这会更新 BossBar 并确保下一个检查点正确。
+            // reloadSchedule() 内部会调用 stop() 和 start()，
+            // start() 会重新安排 resetCheckTask 和 bossBarUpdateTask。
+            // bossBarUpdateTask 会基于新的（可能是空的）futureRefreshEntries 更新 BossBar。
+            reloadSchedule();
 
-            plugin.getLogger().info("末地已自动重置，并已重新加载调度。");
-
+            plugin.getLogger().info("末地已自动重置，配置和调度已更新。");
         }
     }
 
