@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 import java.util.Comparator; // 新增导入
 
 import org.bukkit.Material; // 新增导入
+import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -427,6 +429,12 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
                 entry.getRewardItems().add(itemInHand.clone()); // 添加克隆以防意外修改
                 configManager.saveRefreshEntriesToConfig(); // 保存配置
                 sender.sendMessage(Component.text("已将手中的物品添加到 " + timestampStr + " 的奖励列表。", NamedTextColor.GREEN));
+                // 通知所有末地的玩家有新奖励可领
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    if (p.getWorld().getEnvironment() == World.Environment.THE_END) {
+                        PlayerRewardNotifierListener.checkAndNotifyPlayer(p, entry);
+                    }
+                }
                 break;
 
             case "remove":

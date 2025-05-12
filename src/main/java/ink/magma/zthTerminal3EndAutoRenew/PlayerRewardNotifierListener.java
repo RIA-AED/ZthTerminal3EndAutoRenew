@@ -1,6 +1,7 @@
 package ink.magma.zthTerminal3EndAutoRenew;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -29,7 +30,8 @@ public class PlayerRewardNotifierListener implements Listener {
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
-        if (event.getEntity() instanceof EnderDragon && event.getEntity().getWorld().getEnvironment() == World.Environment.THE_END) {
+        if (event.getEntity() instanceof EnderDragon
+            && event.getEntity().getWorld().getEnvironment() == World.Environment.THE_END) {
             World endWorld = event.getEntity().getWorld();
             if (noLivingEnderDragon(endWorld)) {
                 Optional<ConfigManager.RefreshEntry> currentEntryOpt = configManager.getCurrentRefreshEntry();
@@ -77,14 +79,18 @@ public class PlayerRewardNotifierListener implements Listener {
         }
     }
 
-    private void checkAndNotifyPlayer(Player player, ConfigManager.RefreshEntry refreshEntry) {
+    public static void checkAndNotifyPlayer(Player player, ConfigManager.RefreshEntry refreshEntry) {
         UUID playerUUID = player.getUniqueId();
         if (!refreshEntry.getRewardClaimedPlayers().contains(playerUUID.toString())) {
-            Component message = Component.text("本轮末地远征奖励待领取！", NamedTextColor.GOLD)
-                    .append(Component.text(" [点击此处领取]", NamedTextColor.GREEN, TextDecoration.UNDERLINED)
+            TextComponent msg = Component
+                    .text("本轮末地远征奖励待领取！", NamedTextColor.WHITE)
+                    .append(Component
+                            .text("[点击此处领取]", NamedTextColor.AQUA,
+                                    TextDecoration.BOLD)
                             .clickEvent(ClickEvent.runCommand("/zth-end-renew claimreward"))
-                            .hoverEvent(HoverEvent.showText(Component.text("执行 /zth-end-renew claimreward"))));
-            player.sendMessage(message);
+                            .hoverEvent(HoverEvent.showText(
+                                    Component.text("执行 /zth-end-renew claimreward"))));
+            player.sendMessage(msg);
         }
     }
 
