@@ -97,12 +97,15 @@ public class EndResetScheduler implements Listener {
     }
 
     private void updateEndCountdownBars() {
-        Optional<ConfigManager.RefreshEntry> nextEntryOptional = configManager.peekNextRefreshEntry();
-        LocalDateTime nextRefreshTime = nextEntryOptional.map(ConfigManager.RefreshEntry::getTime).orElse(null);
+        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshTimes();
+        LocalDateTime nextRefreshTime = null;
+        if (!futureRefreshEntries.isEmpty()) {
+            nextRefreshTime = futureRefreshEntries.get(0).getTime();
+        }
 
-        // 只为未来的刷新事件更新倒计时
-        if (nextRefreshTime != null && nextRefreshTime.isBefore(LocalDateTime.now(configManager.getZoneId()))) {
-            nextRefreshTime = null; // 如果下一个事件已过期，则不显示倒计时
+        // 确保 nextRefreshTime 确实是未来的，或者为 null
+        if (nextRefreshTime != null && !nextRefreshTime.isAfter(LocalDateTime.now(configManager.getZoneId()))) {
+            nextRefreshTime = null; // 如果不是未来的（例如，由于极小的时间差，它变成了现在或过去），则不显示
         }
 
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -113,12 +116,16 @@ public class EndResetScheduler implements Listener {
     private void updatePlayerEndBarStatus(Player player) {
         if (player == null || !player.isOnline())
             return;
-        Optional<ConfigManager.RefreshEntry> nextEntryOptional = configManager.peekNextRefreshEntry();
-        LocalDateTime nextRefreshTime = nextEntryOptional.map(ConfigManager.RefreshEntry::getTime).orElse(null);
 
-        // 只为未来的刷新事件更新倒计时
-        if (nextRefreshTime != null && nextRefreshTime.isBefore(LocalDateTime.now(configManager.getZoneId()))) {
-            nextRefreshTime = null; // 如果下一个事件已过期，则不显示倒计时
+        List<ConfigManager.RefreshEntry> futureRefreshEntries = configManager.getFutureRefreshTimes();
+        LocalDateTime nextRefreshTime = null;
+        if (!futureRefreshEntries.isEmpty()) {
+            nextRefreshTime = futureRefreshEntries.get(0).getTime();
+        }
+
+        // 确保 nextRefreshTime 确实是未来的，或者为 null
+        if (nextRefreshTime != null && !nextRefreshTime.isAfter(LocalDateTime.now(configManager.getZoneId()))) {
+            nextRefreshTime = null; // 如果不是未来的，则不显示
         }
         updatePlayerEndBar(player, nextRefreshTime);
     }
