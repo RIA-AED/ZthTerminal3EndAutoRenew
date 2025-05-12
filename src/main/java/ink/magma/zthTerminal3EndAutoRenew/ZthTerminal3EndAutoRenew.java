@@ -24,8 +24,13 @@ public final class ZthTerminal3EndAutoRenew extends JavaPlugin {
         DragonEggListener dragonEggListener = new DragonEggListener(this, configManager, bossBarManager); // Pass BossBarManager
         getServer().getPluginManager().registerEvents(dragonEggListener, this);
 
+        // 注册玩家奖励提醒监听器
+        PlayerRewardNotifierListener playerRewardNotifierListener = new PlayerRewardNotifierListener(this, configManager);
+        getServer().getPluginManager().registerEvents(playerRewardNotifierListener, this);
+
         endResetScheduler.start();
-        configManager.loadAndPruneRefreshTimes();
+        // configManager.loadAndPruneRefreshTimes(); // 这行似乎在 ConfigManager 的 loadRefreshEntries 中重复了，或者逻辑有调整，暂时注释掉，以 ConfigManager 内部逻辑为准
+        configManager.loadRefreshEntries(); // 确保调用的是加载所有条目的方法
 
         // 注册新的统一命令处理器
         PluginCommands pluginCommands = new PluginCommands(this);
