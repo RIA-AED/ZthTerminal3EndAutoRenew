@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional; // 新增导入
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -419,7 +420,7 @@ public class ConfigManager {
      * 将当前的刷新时间列表保存回配置文件。
      * 此方法是私有的，由其他修改刷新时间列表的方法调用。
      */
-    private void saveRefreshTimesToConfig() {
+    public void saveRefreshTimesToConfig() { // -> 改为 public
         List<Map<String, Object>> toSave = refreshTimes.stream()
                 .map(RefreshEntry::toMap) // 将每个 RefreshEntry 转换为 Map
                 .collect(Collectors.toList());
@@ -481,6 +482,26 @@ public class ConfigManager {
             return sb.toString();
         }
     }
+
+    /**
+     * 根据时间查找特定的 RefreshEntry。
+     * @param time 要查找的 LocalDateTime。
+     * @return 包含 RefreshEntry 的 Optional，如果未找到则为空。
+     */
+    public Optional<RefreshEntry> getRefreshEntryByTime(LocalDateTime time) {
+        return refreshTimes.stream()
+                .filter(entry -> entry.getTime().equals(time))
+                .findFirst();
+    }
+
+    /**
+     * 获取所有已配置的刷新条目（包括过去和未来的）。
+     * @return 一个包含所有 RefreshEntry 的列表的不可修改副本。
+     */
+    public List<RefreshEntry> getAllRefreshEntries() {
+        return Collections.unmodifiableList(new ArrayList<>(refreshTimes)); // 返回副本以防外部修改
+    }
+
 
     // --- 其他配置项的 Getter 方法 ---
 
